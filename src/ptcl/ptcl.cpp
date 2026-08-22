@@ -1,7 +1,7 @@
 #include "ptcl/ptcl.h"
 #include "ptcl/ptclBinary.h"
 #include "ptcl/ptclValidator.h"
-#include "ptcl/ptcljson.h"
+#include "ptcl/json/json.h"
 #include "util/imageUtil.h"
 #include "util/stringUtil.h"
 
@@ -481,7 +481,7 @@ bool PtclRes::load(const QString& filePath) {
             mName.clear();
             mEmitterSets.clear();
             mTextures.clear();
-            return PtclJson::importProject(filePath, *this, mSanitizeReport);
+            return Ptcl::Json::importProject(filePath, *this, mSanitizeReport);
         }
 
         PtclBinaryReader reader(filePath);
@@ -512,7 +512,7 @@ bool PtclRes::save(const QString& filePath) {
 }
 
 bool PtclRes::exportProject(const QString& dirPath) {
-    return PtclJson::exportProject(*this, dirPath);
+    return Ptcl::Json::exportProject(*this, dirPath);
 }
 
 const PtclSanitizeReport& PtclRes::sanitizeReport() const {

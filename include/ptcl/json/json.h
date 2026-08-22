@@ -6,7 +6,7 @@
 #include <optional>
 
 
-namespace Ptcl::PtclJson {
+namespace Ptcl::Json {
 
 
 // ========================================================================== //
@@ -38,4 +38,4 @@ bool importProject(const QString& projPath, PtclRes& res, PtclSanitizeReport& re
 // ========================================================================== //
 
 
-} // namespace Ptcl::PtclJson
+} // namespace Ptcl::Json

@@ -1,6 +1,6 @@
 #include "ptcl/ptclCommand.h"
 #include "ptcl/ptclDocument.h"
-#include "ptcl/ptcljson.h"
+#include "ptcl/json/json.h"
 
 #include <utility>
 
@@ -67,7 +67,7 @@ bool Document::exportEmitter(s32 setIndex, s32 emitterIndex, const QString& file
         return false;
     }
 
-    return PtclJson::exportEmitter(*emitter, filePath);
+    return Ptcl::Json::exportEmitter(*emitter, filePath);
 }
 
 bool Document::exportEmitterSet(s32 setIndex, const QString& filePath) {
@@ -76,7 +76,7 @@ bool Document::exportEmitterSet(s32 setIndex, const QString& filePath) {
         return false;
     }
 
-    return PtclJson::exportEmitterSet(*emitterSet, filePath);
+    return Ptcl::Json::exportEmitterSet(*emitterSet, filePath);
 }
 
 bool Document::importEmitter(s32 setIndex, const QString& filePath) {
@@ -84,7 +84,7 @@ bool Document::importEmitter(s32 setIndex, const QString& filePath) {
         return false;
     }
 
-    auto result = PtclJson::importEmitter(filePath, {});
+    auto result = Ptcl::Json::importEmitter(filePath, {});
     if (!result) {
         return false;
     }
@@ -94,7 +94,7 @@ bool Document::importEmitter(s32 setIndex, const QString& filePath) {
 }
 
 bool Document::importEmitterSet(const QString& filePath) {
-    auto result = PtclJson::importEmitterSet(filePath, {});
+    auto result = Ptcl::Json::importEmitterSet(filePath, {});
     if (!result) {
         return false;
     }

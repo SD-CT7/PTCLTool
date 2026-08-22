@@ -95,10 +95,10 @@ set(PROJECT_SOURCES
     src/ptcl/ptclDocument.cpp
     src/ptcl/ptclEmitter.cpp
     src/ptcl/ptclEmitterSet.cpp
-    src/ptcl/ptcljson.cpp
     src/ptcl/ptclSeed.cpp
     src/ptcl/ptclTexture.cpp
     src/ptcl/ptclValidator.cpp
+    src/ptcl/json/json.cpp
     src/util/imageUtil.cpp
     src/util/iconUtil.cpp
     src/util/nameValidator.cpp
@@ -178,11 +178,11 @@ set(PROJECT_HEADERS
     include/ptcl/ptclEmitter.h
     include/ptcl/ptclEmitterSet.h
     include/ptcl/ptclEnum.h
-    include/ptcl/ptcljson.h
     include/ptcl/ptclSanitizeReport.h
     include/ptcl/ptclSeed.h
     include/ptcl/ptclTexture.h
     include/ptcl/ptclValidator.h
+    include/ptcl/json/json.h
     include/util/bitflagUtil.h
     include/util/fileUtil.h
     include/util/iconUtil.h
@@ -198,6 +198,7 @@ qt_add_executable(PTCLTool
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
     ${PROJECT_HEADERS}
+    include/ptcl/json/jsonCommon.h src/ptcl/json/jsonCommon.cpp
 )
 
 qt_add_resources(PTCLTool "icons"
