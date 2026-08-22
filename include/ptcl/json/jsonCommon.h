@@ -51,6 +51,9 @@ Emitter::ScaleAnim scaleAnimFromJson(const QJsonObject& json);
 QJsonObject alphaAnimToJson(const Emitter::AlphaAnim& anim);
 Emitter::AlphaAnim alphaAnimFromJson(const QJsonObject& json);
 
+bool writeJsonFile(const QJsonObject& root, const QString& filePath);
+std::optional<QJsonObject> readJsonFile(const QString& filePath);
+
 
 // ========================================================================== //
 

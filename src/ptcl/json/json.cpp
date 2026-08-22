@@ -39,12 +39,10 @@ std::optional<QString> exportTexture(const Texture& texture, s32 idx, const QDir
 
     auto textureName = QString("tex_%1.ptex").arg(idx);
 
-    QFile textureFile{dir.filePath(textureName)};
-    if (!textureFile.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(textureJson, dir.filePath(textureName))) {
         return std::nullopt;
     }
 
-    textureFile.write(QJsonDocument(textureJson).toJson());
     return textureName;
 }
 
@@ -274,12 +272,10 @@ std::optional<QString> exportEmitter(const Emitter& emitter, s32 idx, const QDir
 
     auto emitterName = QString("emitter_%1_%2.pemt").arg(idx).arg(emitter.name());
 
-    QFile emitterFile{dir.filePath(emitterName)};
-    if (!emitterFile.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(emitterJson, dir.filePath(emitterName))) {
         return std::nullopt;
     }
 
-    emitterFile.write(QJsonDocument(emitterJson).toJson());
     return emitterName;
 }
 
@@ -315,12 +311,10 @@ std::optional<QString> exportEmitterSet(const EmitterSet& emitterSet, s32 idx, c
 
     auto emitterSetFileName = QString("%1.pset").arg(emitterSetName);
 
-    QFile emitterSetFile{dir.filePath(emitterSetFileName)};
-    if (!emitterSetFile.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(emitterSetJson, dir.filePath(emitterSetFileName))) {
         return std::nullopt;
     }
 
-    emitterSetFile.write(QJsonDocument(emitterSetJson).toJson());
     return emitterSetFileName;
 }
 
@@ -342,20 +336,11 @@ QJsonObject exportEmitterSets(const EmitterSetList& emitterSets, const QDir& dir
 
 
 std::optional<Texture> importTexture(const QString& filePath) {
-    QFile file{filePath};
-
-    if (!file.open(QIODevice::ReadOnly)) {
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
         return std::nullopt;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(file.readAll(), &parseError);
-
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return std::nullopt;
-    }
-
-    const QJsonObject textureJson = jsonDoc.object();
+    const auto& textureJson = *readResult;
 
     if (validateMetaInfo(textureJson["metaInfo"].toObject(), JsonFileType::TextureFile, 1)) {
         return std::nullopt;
@@ -390,15 +375,6 @@ std::optional<Texture> importTextureFromJson(const QJsonObject& textureJson) {
         height,
         format
     };
-}
-
-QJsonObject buildTexturesIndex(const QDir& texDir) {
-    QJsonObject texturesJson{};
-    const auto entries = texDir.entryList({"*.ptex"}, QDir::Files, QDir::Name);
-    for (s32 idx = 0; idx < entries.size(); ++idx) {
-        texturesJson[QString::number(idx)] = entries[idx];
-    }
-    return texturesJson;
 }
 
 std::optional<TextureList> importTextures(const QJsonObject& texturesJson, const QDir& projectDir) {
@@ -648,35 +624,19 @@ std::unique_ptr<Emitter> importEmitterFromJson(const QJsonObject& emitterJson, c
 }
 
 std::unique_ptr<Emitter> importEmitter(const QString& filePath, const TextureList& textures) {
-    QFile file{filePath};
-    if (!file.open(QIODevice::ReadOnly)) {
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
         return nullptr;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(file.readAll(), &parseError);
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return nullptr;
-    }
-
-    return importEmitterFromJson(jsonDoc.object(), textures);
+    return importEmitterFromJson(readResult.value(), textures);
 }
 
 std::optional<EmitterSet> importEmitterSet(const QString& filePath, TextureList& textures) {
-    QFile file{filePath};
-
-    if (!file.open(QIODevice::ReadOnly)) {
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
         return std::nullopt;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(file.readAll(), &parseError);
-
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return std::nullopt;
-    }
-
-    const QJsonObject emitterSetJson = jsonDoc.object();
+    const auto& emitterSetJson = *readResult;
 
     if (validateMetaInfo(emitterSetJson["metaInfo"].toObject(), JsonFileType::EmitterSetFile, 1)) {
         return std::nullopt;
@@ -772,24 +732,20 @@ bool exportProject(const PtclRes& res, const QString& dirPath) {
 
     auto projectName = QString("%1.ptclproj").arg(res.name());
 
-    QFile projectFile{projectDir.filePath(projectName)};
-    if (!projectFile.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(projectJson, projectDir.filePath(projectName))) {
         return false;
     }
 
-    projectFile.write(QJsonDocument(projectJson).toJson());
     return true;
 }
 
 bool exportEmitter(const Emitter& emitter, const QString& filePath) {
     auto emitterJson = Internal::buildEmitterJson(emitter, true, nullptr);
 
-    QFile emitterFile{filePath};
-    if (!emitterFile.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(emitterJson, filePath)) {
         return false;
     }
 
-    emitterFile.write(QJsonDocument(emitterJson).toJson());
     return true;
 }
 
@@ -826,29 +782,19 @@ bool exportEmitterSet(const EmitterSet& emitterSet, const QString& filePath) {
     rootJson["textures"] = texturesJson;
     rootJson["emitters"] = emittersJson;
 
-    QFile file{filePath};
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!writeJsonFile(rootJson, filePath)) {
         return false;
     }
 
-    file.write(QJsonDocument(rootJson).toJson());
     return true;
 }
 
 std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const QString& projectDir) {
-    QFile file{filePath};
-    if (!file.open(QIODevice::ReadOnly)) {
+    const auto emitterReadResult = readJsonFile(filePath);
+    if (!emitterReadResult) {
         return std::nullopt;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(file.readAll(), &parseError);
-
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return std::nullopt;
-    }
-
-    const QJsonObject emitterJson = jsonDoc.object();
+    const auto& emitterJson = *emitterReadResult;
 
     if (validateMetaInfo(emitterJson["metaInfo"].toObject(), JsonFileType::EmitterFile, 1)) {
         return std::nullopt;
@@ -901,18 +847,12 @@ std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const 
         return std::nullopt;
     }
 
-    QFile projFile{sourceProjectDir.filePath(projFiles.first())};
-    if (!projFile.open(QIODevice::ReadOnly)) {
+    const auto projReadResult = readJsonFile(sourceProjectDir.filePath(projFiles.first()));
+    if (!projReadResult) {
         return std::nullopt;
     }
+    const auto& projJson = *projReadResult;
 
-    QJsonParseError projParseError{};
-    const QJsonDocument projDoc = QJsonDocument::fromJson(projFile.readAll(), &projParseError);
-    if (projParseError.error != QJsonParseError::NoError || !projDoc.isObject()) {
-        return std::nullopt;
-    }
-
-    const QJsonObject projJson = projDoc.object();
     auto sourceTextures = Internal::importTextures(projJson["textures"].toObject(), sourceProjectDir);
     if (!sourceTextures) {
         return std::nullopt;
@@ -963,19 +903,12 @@ std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const 
     return ImportEmitterResult{std::move(emitter), std::move(resultTextures)};
 }
 
-std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, const QString& projectDir) {
-    QFile file{filePath};
-    if (!file.open(QIODevice::ReadOnly)) {
+std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, const QString& projectDir) {    
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
         return std::nullopt;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(file.readAll(), &parseError);
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return std::nullopt;
-    }
-
-    const QJsonObject setJson = jsonDoc.object();
+    const auto& setJson = *readResult;
 
     if (validateMetaInfo(setJson["metaInfo"].toObject(), JsonFileType::EmitterSetFile, 1)) {
         return std::nullopt;
@@ -1056,18 +989,12 @@ std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, 
             return std::nullopt;
         }
 
-        QFile projFile{sourceProjectDir.filePath(projFiles.first())};
-        if (!projFile.open(QIODevice::ReadOnly)) {
+        const auto readResult = readJsonFile(sourceProjectDir.filePath(projFiles.first()));
+        if (!readResult) {
             return std::nullopt;
         }
+        const auto& projJson = *readResult;
 
-        QJsonParseError projParseError{};
-        const QJsonDocument projDoc = QJsonDocument::fromJson(projFile.readAll(), &projParseError);
-        if (projParseError.error != QJsonParseError::NoError || !projDoc.isObject()) {
-            return std::nullopt;
-        }
-
-        const QJsonObject projJson = projDoc.object();
         auto sourceTextures = Internal::importTextures(projJson["textures"].toObject(), sourceProjectDir);
         if (!sourceTextures) {
             return std::nullopt;
@@ -1124,19 +1051,11 @@ std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, 
 }
 
 bool importProject(const QString& projPath, PtclRes& res, [[maybe_unused]] PtclSanitizeReport& report) {
-    QFile projectFile{projPath};
-    if (!projectFile.open(QIODevice::ReadOnly)) {
+    const auto readResult = readJsonFile(projPath);
+    if (!readResult) {
         return false;
     }
-
-    QJsonParseError parseError{};
-    const QJsonDocument jsonDoc = QJsonDocument::fromJson(projectFile.readAll(), &parseError);
-
-    if (parseError.error != QJsonParseError::NoError || !jsonDoc.isObject()) {
-        return false;
-    }
-
-    const QJsonObject projectJson = jsonDoc.object();
+    const auto& projectJson = *readResult;
 
     if (validateMetaInfo(projectJson["metaInfo"].toObject(), JsonFileType::ProjectFile, 1)) {
         return false;

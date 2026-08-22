@@ -1,5 +1,9 @@
 #include "ptcl/json/jsonCommon.h"
 
+#include <QSaveFile>
+#include <QIODevice>
+#include <QFile>
+
 
 namespace Ptcl::Json {
 
@@ -170,6 +174,38 @@ Emitter::AlphaAnim alphaAnimFromJson(const QJsonObject& json) {
         .isFlatStart = json["isFlatStart"].toBool()
     };
 }
+
+bool writeJsonFile(const QJsonObject& root, const QString& filePath) {
+    QSaveFile file{filePath};
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+
+    const auto data = QJsonDocument(root).toJson();
+
+    if (file.write(data) != data.size()) {
+        return false;
+    }
+
+    return file.commit();
+}
+
+std::optional<QJsonObject> readJsonFile(const QString& filePath) {
+    QFile file{filePath};
+    if (!file.open(QIODevice::ReadOnly)) {
+        return std::nullopt;
+    }
+
+    QJsonParseError error;
+    const auto document = QJsonDocument::fromJson(file.readAll(), &error);
+
+    if (error.error != QJsonParseError::NoError || !document.isObject()) {
+        return std::nullopt;
+    }
+
+    return document.object();
+}
+
 
 // ========================================================================== //
 
