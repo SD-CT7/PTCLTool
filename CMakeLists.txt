@@ -99,6 +99,8 @@ set(PROJECT_SOURCES
     src/ptcl/ptclTexture.cpp
     src/ptcl/ptclValidator.cpp
     src/ptcl/json/json.cpp
+    src/ptcl/json/jsonCommon.cpp
+    src/ptcl/json/jsonTexture.cpp
     src/util/imageUtil.cpp
     src/util/iconUtil.cpp
     src/util/nameValidator.cpp
@@ -183,6 +185,8 @@ set(PROJECT_HEADERS
     include/ptcl/ptclTexture.h
     include/ptcl/ptclValidator.h
     include/ptcl/json/json.h
+    include/ptcl/json/jsonCommon.h
+    include/ptcl/json/jsonTexture.h
     include/util/bitflagUtil.h
     include/util/fileUtil.h
     include/util/iconUtil.h
@@ -198,7 +202,6 @@ qt_add_executable(PTCLTool
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
     ${PROJECT_HEADERS}
-    include/ptcl/json/jsonCommon.h src/ptcl/json/jsonCommon.cpp
 )
 
 qt_add_resources(PTCLTool "icons"

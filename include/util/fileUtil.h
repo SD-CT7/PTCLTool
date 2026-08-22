@@ -10,7 +10,6 @@ namespace FileUtil {
 
 // ========================================================================== //
 
-
 enum class FileType {
     PtclBinary,
     PtclProject,
