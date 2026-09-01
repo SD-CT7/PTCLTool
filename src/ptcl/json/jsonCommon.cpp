@@ -11,15 +11,50 @@ namespace Ptcl::Json {
 // ========================================================================== //
 
 
-QJsonObject createMetaInfo(JsonFileType type, s32 version) {
+QJsonObject createMetaInfo(FileKind kind, s32 version) {
     QJsonObject metaInfo{};
-    metaInfo["fileType"] = static_cast<s32>(type);
+    metaInfo["fileType"] = std::to_underlying(kind);
     metaInfo["version"]  = version;
     return metaInfo;
 }
 
-bool validateMetaInfo(const QJsonObject& metaInfo, JsonFileType type, s32 version) {
-    return (metaInfo["fileType"].toInt() != static_cast<s32>(type) || metaInfo["version"].toInt() != version);
+bool validateMetaInfo(const QJsonObject& metaInfo, FileKind kind, s32 version) {
+    return (metaInfo["fileType"].toInt() == std::to_underlying(kind) && metaInfo["version"].toInt() == version);
+}
+
+std::optional<FileKind> classifyJson(const QJsonObject& json) {
+    if (!json.contains("metaInfo")) {
+        return std::nullopt;
+    }
+
+    const auto metaInfo = json.value("metaInfo").toObject();
+    if (metaInfo.isEmpty() || !metaInfo.contains("fileType")) {
+        return std::nullopt;
+    }
+
+    const auto value = metaInfo.value("fileType");
+    if (!value.isDouble()) {
+        return std::nullopt;
+    }
+
+    const auto type = value.toInt();
+    if (type < 0) {
+        return std::nullopt;
+    }
+
+    switch (static_cast<FileKind>(type)) {
+    case FileKind::Project:
+    case FileKind::Texture:
+    case FileKind::EmitterSet:
+    case FileKind::Emitter:
+        return static_cast<FileKind>(type);
+    case FileKind::Binary:
+    case FileKind::Image:
+    case FileKind::Unknown:
+        break;
+    }
+
+    return std::nullopt;
 }
 
 QJsonValue floatToJson(f32 value) {

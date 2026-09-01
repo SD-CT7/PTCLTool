@@ -1,6 +1,7 @@
 #pragma once
 
 #include "typedefs.h"
+#include "util/fileKind.h"
 #include "math/vector.h"
 #include "math/matrix.h"
 #include "gfx/color.h"
@@ -17,15 +18,10 @@ namespace Ptcl::Json {
 // ========================================================================== //
 
 
-enum class JsonFileType {
-    ProjectFile    = 0,
-    TextureFile    = 1,
-    EmitterSetFile = 2,
-    EmitterFile    = 3,
-};
+QJsonObject createMetaInfo(FileKind kind, s32 version);
+bool validateMetaInfo(const QJsonObject& metaInfo, FileKind kind, s32 version);
 
-QJsonObject createMetaInfo(JsonFileType type, s32 version);
-bool validateMetaInfo(const QJsonObject& metaInfo, JsonFileType type, s32 version);
+std::optional<FileKind> classifyJson(const QJsonObject& json);
 
 QJsonValue floatToJson(f32 value);
 f32 jsonToFloat(const QJsonValue& json);

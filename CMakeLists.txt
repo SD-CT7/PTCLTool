@@ -188,6 +188,7 @@ set(PROJECT_HEADERS
     include/ptcl/json/jsonCommon.h
     include/ptcl/json/jsonTexture.h
     include/util/bitflagUtil.h
+    include/util/fileKind.h
     include/util/fileUtil.h
     include/util/iconUtil.h
     include/util/imageUtil.h

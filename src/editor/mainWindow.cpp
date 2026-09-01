@@ -286,24 +286,28 @@ void MainWindow::dropEvent(QDropEvent* event) {
         }
 
         switch (FileUtil::classifyFile(localPath)) {
-        case FileUtil::FileType::PtclBinary:
-        case FileUtil::FileType::PtclProject:
+        case FileKind::Binary:
+        case FileKind::Project:
             loadDocument(localPath);
             break;
-        case FileUtil::FileType::Image:
+        case FileKind::Image:
             dropImage(localPath);
             break;
-        case FileUtil::FileType::Unknown:
+        case FileKind::Texture:
+        case FileKind::EmitterSet:
+        case FileKind::Emitter:
+        case FileKind::Unknown:
             showOpenErrorDialog(localPath);
             break;
         }
     }
 }
 
-void MainWindow::openFile() {
+void MainWindow::openFile() {    
     QFileDialog openFileDialog(this, "Open File",
         SettingsUtil::dialogPath(SettingsUtil::PathType::Open),
-        "PTCL Binary (*.ptcl);;PTCL Project file (*.ptclproj)");
+        FileUtil::fileFilter({FileKind::Binary, FileKind::Project})
+    );
 
     if (openFileDialog.exec() == QFileDialog::DialogCode::Rejected) {
         return;
@@ -346,7 +350,7 @@ void MainWindow::saveFileAs() {
         this,
         "Save As",
         SettingsUtil::dialogPath(SettingsUtil::PathType::Save),
-        "*.ptcl"
+        FileUtil::fileFilter({FileKind::Binary})
     );
 
     if(dialog.exec() == QFileDialog::DialogCode::Rejected) {
@@ -354,9 +358,7 @@ void MainWindow::saveFileAs() {
     }
 
     auto filePath = dialog.selectedFiles().constFirst();
-    if (!filePath.endsWith(".ptcl")) {
-        filePath += ".ptcl";
-    }
+    filePath = FileUtil::ensureExtention(filePath, FileKind::Binary);
 
     mDocument->save(filePath);
 

@@ -2,6 +2,7 @@
 
 #include "ptcl/json/jsonCommon.h"
 #include "ptcl/json/jsonTexture.h"
+#include "util/fileUtil.h"
 
 
 #include <QDataStream>
@@ -26,7 +27,7 @@ namespace Internal {
 
 QJsonObject buildEmitterJson(const Emitter& emitter, bool embedTextures, const TextureMap* textureMap) {
     QJsonObject emitterJson{};
-    emitterJson["metaInfo"] = createMetaInfo(JsonFileType::EmitterFile, 1);
+    emitterJson["metaInfo"] = createMetaInfo(FileKind::Emitter, 1);
 
     emitterJson["type"] = static_cast<s64>(emitter.type());
     emitterJson["flag"] = static_cast<s64>(emitter.flags().value());
@@ -259,7 +260,7 @@ QJsonObject exportEmitters(const EmitterList& emitters, const QDir& dir, const T
 
 QJsonObject buildEmitterSetJson(const EmitterSet& emitterSet) {
     QJsonObject emitterSetJson{};
-    emitterSetJson["metaInfo"] = createMetaInfo(JsonFileType::EmitterSetFile, 1);
+    emitterSetJson["metaInfo"] = createMetaInfo(FileKind::EmitterSet, 1);
     emitterSetJson["name"]           = emitterSet.name();
     emitterSetJson["userData"]       = static_cast<s64>(emitterSet.userData());
     emitterSetJson["lastUpdateDate"] = static_cast<s64>(emitterSet.lastUpdateDate());
@@ -300,7 +301,7 @@ QJsonObject exportEmitterSets(const EmitterSetList& emitterSets, const QDir& dir
 
 
 std::unique_ptr<Emitter> importEmitterFromJson(const QJsonObject& emitterJson, const TextureList& textures) {
-    if (validateMetaInfo(emitterJson["metaInfo"].toObject(), JsonFileType::EmitterFile, 1)) {
+    if (!validateMetaInfo(emitterJson["metaInfo"].toObject(), FileKind::Emitter, 1)) {
         return nullptr;
     }
 
@@ -535,7 +536,7 @@ std::optional<EmitterSet> importEmitterSet(const QString& filePath, TextureList&
     }
     const auto& emitterSetJson = *readResult;
 
-    if (validateMetaInfo(emitterSetJson["metaInfo"].toObject(), JsonFileType::EmitterSetFile, 1)) {
+    if (!validateMetaInfo(emitterSetJson["metaInfo"].toObject(), FileKind::EmitterSet, 1)) {
         return std::nullopt;
     }
 
@@ -622,12 +623,12 @@ bool exportProject(const PtclRes& res, const QString& dirPath) {
     }
 
     QJsonObject projectJson{};
-    projectJson["metaInfo"]    = createMetaInfo(JsonFileType::ProjectFile, 1);
+    projectJson["metaInfo"]    = createMetaInfo(FileKind::Project, 1);
     projectJson["name"]        = res.name();
     projectJson["textures"]    = exportTextures(res.textures(), texturesDir);
     projectJson["emitterSets"] = Internal::exportEmitterSets(res.getEmitterSets(), emitterSetsDir, textureMap);
 
-    auto projectName = QString("%1.ptclproj").arg(res.name());
+    auto projectName = FileUtil::ensureExtention(res.name(), FileKind::Project);
 
     if (!writeJsonFile(projectJson, projectDir.filePath(projectName))) {
         return false;
@@ -693,7 +694,7 @@ std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const 
     }
     const auto& emitterJson = *emitterReadResult;
 
-    if (validateMetaInfo(emitterJson["metaInfo"].toObject(), JsonFileType::EmitterFile, 1)) {
+    if (!validateMetaInfo(emitterJson["metaInfo"].toObject(), FileKind::Emitter, 1)) {
         return std::nullopt;
     }
 
@@ -739,7 +740,8 @@ std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const 
         return std::nullopt;
     }
 
-    const auto projFiles = sourceProjectDir.entryList({"*.ptclproj"}, QDir::Files);
+    const auto projFileExt = FileUtil::fileExtention(FileKind::Project);
+    const auto projFiles = sourceProjectDir.entryList({projFileExt}, QDir::Files);
     if (projFiles.isEmpty()) {
         return std::nullopt;
     }
@@ -807,7 +809,7 @@ std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, 
     }
     const auto& setJson = *readResult;
 
-    if (validateMetaInfo(setJson["metaInfo"].toObject(), JsonFileType::EmitterSetFile, 1)) {
+    if (!validateMetaInfo(setJson["metaInfo"].toObject(), FileKind::EmitterSet, 1)) {
         return std::nullopt;
     }
 
@@ -881,7 +883,8 @@ std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, 
             return std::nullopt;
         }
 
-        const auto projFiles = sourceProjectDir.entryList({"*.ptclproj"}, QDir::Files);
+        const auto projFileExt = FileUtil::fileExtention(FileKind::Project);
+        const auto projFiles = sourceProjectDir.entryList({projFileExt}, QDir::Files);
         if (projFiles.isEmpty()) {
             return std::nullopt;
         }
@@ -954,7 +957,7 @@ bool importProject(const QString& projPath, PtclRes& res, [[maybe_unused]] PtclS
     }
     const auto& projectJson = *readResult;
 
-    if (validateMetaInfo(projectJson["metaInfo"].toObject(), JsonFileType::ProjectFile, 1)) {
+    if (!validateMetaInfo(projectJson["metaInfo"].toObject(), FileKind::Project, 1)) {
         return false;
     }
 

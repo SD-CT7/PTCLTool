@@ -58,7 +58,7 @@ std::optional<Texture> textureFromJson(const QJsonObject& json) {
 
 std::optional<QString> exportTexture(const Texture& texture, s32 idx, const QDir& dir) {
     QJsonObject json = textureToJson(texture);
-    json.insert("metaInfo", createMetaInfo(JsonFileType::TextureFile, 1));
+    json.insert("metaInfo", createMetaInfo(FileKind::Texture, 1));
 
     auto textureName = QStringLiteral("tex_%1.ptex").arg(idx);
 
@@ -76,7 +76,7 @@ std::optional<Texture> importTexture(const QString& filePath) {
     }
     const auto& textureJson = *readResult;
 
-    if (validateMetaInfo(textureJson["metaInfo"].toObject(), JsonFileType::TextureFile, 1)) {
+    if (!validateMetaInfo(textureJson["metaInfo"].toObject(), FileKind::Texture, 1)) {
         return std::nullopt;
     }
 

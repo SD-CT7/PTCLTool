@@ -1,6 +1,8 @@
 #include "ptcl/ptclCommand.h"
 #include "ptcl/ptclDocument.h"
 #include "ptcl/json/json.h"
+#include "util/fileUtil.h"
+
 
 #include <utility>
 
@@ -36,7 +38,7 @@ bool Document::load(const QString& filePath) {
         return false;
     }
 
-    if (!filePath.endsWith(".ptclproj")) {
+    if (!FileUtil::hasExtention(filePath, FileKind::Project)) {
         mFilePath = filePath;
     }
 
