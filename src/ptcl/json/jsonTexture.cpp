@@ -140,7 +140,7 @@ std::optional<TextureList> importProjectTextures(const QDir& projectDir) {
     }
 
     const auto projFileExt = FileUtil::fileExtention(FileKind::Project);
-    const auto projFiles = projectDir.entryList({projFileExt}, QDir::Files);
+    const auto projFiles = projectDir.entryList({QStringLiteral("*") + projFileExt}, QDir::Files);
     if (projFiles.isEmpty()) {
         return std::nullopt;
     }
