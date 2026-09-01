@@ -4,6 +4,8 @@
 #include "ptcl/json/jsonTexture.h"
 #include "util/fileUtil.h"
 
+#include <algorithm>
+
 
 namespace Ptcl::Json {
 
@@ -814,8 +816,8 @@ std::optional<Emitter> emitterFromJson(const QJsonObject& json, const TextureLis
     emitter.setTextureLodLevel(static_cast<u8>(textureLodLevel.toInt()));
     emitter.setTextureFilter(static_cast<TextureFilter>(textureFilter.toInteger()));
     emitter.setNumTexturePattern(static_cast<u16>(numTexturePattern.toInt()));
-    emitter.setNumTextureDivisionX(static_cast<u8>(numTextureDivisionX.toInt()));
-    emitter.setNumTextureDivisionY(static_cast<u8>(numTextureDivisionY.toInt()));
+    emitter.setNumTextureDivisionX(static_cast<u8>(std::max(1, numTextureDivisionX.toInt())));
+    emitter.setNumTextureDivisionY(static_cast<u8>(std::max(1, numTextureDivisionY.toInt())));
     emitter.setTextureUVScale(jsonToVec2f(textureUVScale.toObject()));
     {
         const QJsonArray patternTableJson = texturePatternTable.toArray();
@@ -852,6 +854,23 @@ static std::optional<Emitter> importEmitterFile(const QString& filePath, const T
     return emitterFromJson(*readResult, textures);
 }
 
+static void validateImportedEmitter(Emitter& emitter, TextureList& textures, PtclSanitizeReport& report) {
+    const QString emitterContext = emitter.name().isEmpty() ? QStringLiteral("Emitter") : QStringLiteral("Emitter '%1'").arg(emitter.name());
+    report.setContext(emitterContext);
+
+    emitter.validate(report);
+
+    for (s32 i = 0; i < static_cast<s32>(textures.size()); ++i) {
+        if (!textures[i]) {
+            continue;
+        }
+        report.setContext(QStringLiteral("%1 / Texture %2").arg(emitterContext).arg(i));
+        textures[i]->validate(report);
+    }
+
+    report.setContext({});
+}
+
 static std::optional<ImportEmitterResult> importStandaloneEmitter(const QJsonObject& json, const QJsonValue& texVal, const QJsonValue& childTexVal) {
     TextureList textures{};
 
@@ -873,7 +892,9 @@ static std::optional<ImportEmitterResult> importStandaloneEmitter(const QJsonObj
         return std::nullopt;
     }
 
-    return ImportEmitterResult{std::make_unique<Emitter>(std::move(*emitter)), std::move(textures)};
+    ImportEmitterResult result{std::make_unique<Emitter>(std::move(*emitter)), std::move(textures), {}};
+    validateImportedEmitter(*result.emitter, result.textures, result.report);
+    return result;
 }
 
 static std::optional<ImportEmitterResult> importLinkedEmitter(const QJsonObject& json, const QString& filePath, const QString& projectDir) {
@@ -893,7 +914,9 @@ static std::optional<ImportEmitterResult> importLinkedEmitter(const QJsonObject&
     TextureRemap remap{};
     reIdEmitterTextures(*emitter, resultTextures, remap);
 
-    return ImportEmitterResult{std::make_unique<Emitter>(std::move(*emitter)), std::move(resultTextures)};
+    ImportEmitterResult result{std::make_unique<Emitter>(std::move(*emitter)), std::move(resultTextures), {}};
+    validateImportedEmitter(*result.emitter, result.textures, result.report);
+    return result;
 }
 
 std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const QString& projectDir) {

@@ -24,6 +24,7 @@ std::optional<QString> exportEmitter(const Emitter& emitter, s32 idx, const QDir
 struct ImportEmitterResult {
     std::unique_ptr<Emitter> emitter;
     TextureList textures;
+    PtclSanitizeReport report;
 };
 
 std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const QString& projectDir = {});

@@ -93,7 +93,11 @@ bool Document::importEmitter(s32 setIndex, const QString& filePath) {
         return false;
     }
 
+    mLastImportReport = std::move(result->report);
     mUndoStack.push(new ImportEmitterCommand(this, setIndex, std::move(result->emitter), std::move(result->textures), "Import Emitter"));
+    if (mLastImportReport.hasIssues()) {
+        emit importReportReady(filePath, mLastImportReport);
+    }
     return true;
 }
 
@@ -103,7 +107,11 @@ bool Document::importEmitterSet(const QString& filePath) {
         return false;
     }
 
+    mLastImportReport = std::move(result->report);
     mUndoStack.push(new ImportEmitterSetCommand(this, std::move(result->emitterSet), std::move(result->textures), "Import EmitterSet"));
+    if (mLastImportReport.hasIssues()) {
+        emit importReportReady(filePath, mLastImportReport);
+    }
     return true;
 }
 

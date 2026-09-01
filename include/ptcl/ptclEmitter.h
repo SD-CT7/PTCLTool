@@ -8,6 +8,7 @@
 
 #include "ptcl/ptclBinary.h"
 #include "ptcl/ptclEnum.h"
+#include "ptcl/ptclSanitizeReport.h"
 #include "ptcl/ptclSeed.h"
 #include "ptcl/ptclTexture.h"
 
@@ -87,6 +88,8 @@ public:
 
     void initFromBinary(const BinCommonEmitterData& emitterData);
     void initComplexFromBinary(const BinComplexEmitterData& emitterData);
+
+    void validate(PtclSanitizeReport& report);
 
     void setTransformFromMatrices(const Math::Matrix34f& rt, const Math::Matrix34f& srt);
 

@@ -43,6 +43,8 @@ public:
     void insertEmitter(s32 emitterIndex, std::unique_ptr<Emitter> emitter);
     std::unique_ptr<Emitter> removeEmitter(s32 emitterIndex);
 
+    void validate(PtclSanitizeReport& report);
+
     std::unique_ptr<EmitterSet> clone() const;
 
 private:

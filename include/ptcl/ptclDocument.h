@@ -156,8 +156,11 @@ signals:
     void textureRemoved(s32 index);
     void textureChanged(s32 index);
 
+    void importReportReady(const QString& filePath, const Ptcl::PtclSanitizeReport& report);
+
 private:
     PtclRes mData{};
+    PtclSanitizeReport mLastImportReport{};
     QString mFilePath{};
     QUndoStack mUndoStack{};
 };

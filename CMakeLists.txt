@@ -97,7 +97,6 @@ set(PROJECT_SOURCES
     src/ptcl/ptclEmitterSet.cpp
     src/ptcl/ptclSeed.cpp
     src/ptcl/ptclTexture.cpp
-    src/ptcl/ptclValidator.cpp
     src/ptcl/json/json.cpp
     src/ptcl/json/jsonCommon.cpp
     src/ptcl/json/jsonEmitter.cpp
@@ -185,7 +184,6 @@ set(PROJECT_HEADERS
     include/ptcl/ptclSanitizeReport.h
     include/ptcl/ptclSeed.h
     include/ptcl/ptclTexture.h
-    include/ptcl/ptclValidator.h
     include/ptcl/json/json.h
     include/ptcl/json/jsonCommon.h
     include/ptcl/json/jsonEmitter.h

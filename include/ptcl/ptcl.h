@@ -191,6 +191,8 @@ public:
 
     const PtclSanitizeReport& sanitizeReport() const;
 
+    void validate(PtclSanitizeReport& report);
+
     EmitterSetList& getEmitterSets();
     const EmitterSetList& getEmitterSets() const;
 
@@ -218,6 +220,8 @@ public:
     s32 textureCount() const;
 
 private:
+    void buildFromBinary(PtclReadResult&& read);
+
     QString mName;
     TextureList mTextures;
     EmitterSetList mEmitterSets;

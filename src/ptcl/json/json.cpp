@@ -45,7 +45,7 @@ bool exportProject(const PtclRes& res, const QString& dirPath) {
     return writeJsonFile(json, projectDir.filePath(projectName));
 }
 
-bool importProject(const QString& projPath, PtclRes& res, [[maybe_unused]] PtclSanitizeReport& report) {
+bool importProject(const QString& projPath, PtclRes& res, PtclSanitizeReport& report) {
     const auto readResult = readJsonFile(projPath);
     if (!readResult) {
         return false;
@@ -74,7 +74,7 @@ bool importProject(const QString& projPath, PtclRes& res, [[maybe_unused]] PtclS
 
     res.getEmitterSets() = std::move(*emitterSets);
 
-    // TODO: Validate stuff
+    res.validate(report);
 
     return true;
 }

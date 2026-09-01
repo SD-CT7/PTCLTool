@@ -61,6 +61,10 @@ bool Texture::isPlaceholder() const {
     return mIsPlaceholder;
 }
 
+void Texture::validate(PtclSanitizeReport& report) {
+    mTextureFormat = report.sanitize<TextureFormat>(mTextureFormat, TextureFormat::ETC1_A4, TextureFormat::RGBA8888, "textureFormat");
+}
+
 void Texture::swapTexture(Texture& other) {
     std::swap(mTextureFormat, other.mTextureFormat);
     std::swap(mEncodedData, other.mEncodedData);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ptcl/ptclEnum.h"
+#include "ptcl/ptclSanitizeReport.h"
 
 #include <QImage>
 
@@ -35,6 +36,8 @@ public:
     u32 userCount() const;
 
     bool isPlaceholder() const;
+
+    void validate(PtclSanitizeReport& report);
 
     void swapTexture(Texture& other);
 

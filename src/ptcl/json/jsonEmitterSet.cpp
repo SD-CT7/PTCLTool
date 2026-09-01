@@ -113,6 +113,26 @@ static std::optional<EmitterSet> importEmitterSetFile(const QString& filePath, c
     return emitterSetFromJson(*readResult, filePath, textures);
 }
 
+static void validateImportedEmitterSet(EmitterSet& emitterSet, TextureList& textures, PtclSanitizeReport& report) {
+    const QString setContext =
+        emitterSet.name().isEmpty()  ?
+        QStringLiteral("EmitterSet") :
+        QStringLiteral("EmitterSet '%1'").arg(emitterSet.name());
+    report.setContext(setContext);
+
+    emitterSet.validate(report);
+
+    for (s32 i = 0; i < static_cast<s32>(textures.size()); ++i) {
+        if (!textures[i]) {
+            continue;
+        }
+        report.setContext(QStringLiteral("%1 / Texture %2").arg(setContext).arg(i));
+        textures[i]->validate(report);
+    }
+
+    report.setContext({});
+}
+
 static std::optional<ImportEmitterSetResult> importStandaloneEmitterSet(const QJsonObject& setJson) {
     TextureList textures{};
 
@@ -168,7 +188,9 @@ static std::optional<ImportEmitterSetResult> importStandaloneEmitterSet(const QJ
         emitterSet->insertEmitter(idx, std::make_unique<Emitter>(std::move(*emitter)));
     }
 
-    return ImportEmitterSetResult{std::move(emitterSet), std::move(textures)};
+    ImportEmitterSetResult result{std::move(emitterSet), std::move(textures), {}};
+    validateImportedEmitterSet(*result.emitterSet, result.textures, result.report);
+    return result;
 }
 
 static std::optional<ImportEmitterSetResult> importLinkedEmitterSet(const QJsonObject& setJson, const QString& filePath, const QString& projectDir) {
@@ -190,7 +212,9 @@ static std::optional<ImportEmitterSetResult> importLinkedEmitterSet(const QJsonO
         reIdEmitterTextures(*emitterSet->emitters().at(i), resultTextures, remap);
     }
 
-    return ImportEmitterSetResult{std::make_unique<EmitterSet>(std::move(*emitterSet)), std::move(resultTextures)};
+    ImportEmitterSetResult result{std::make_unique<EmitterSet>(std::move(*emitterSet)), std::move(resultTextures), {}};
+    validateImportedEmitterSet(*result.emitterSet, result.textures, result.report);
+    return result;
 }
 
 std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, const QString& projectDir) {

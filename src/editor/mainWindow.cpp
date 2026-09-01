@@ -92,6 +92,7 @@ void MainWindow::setupUi() {
     updateWindowTitle();
 
     applyIcons();
+
     connect(&IconManager::instance(), &IconManager::iconsChanged, this, &MainWindow::applyIcons);
 }
 
@@ -303,7 +304,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
     }
 }
 
-void MainWindow::openFile() {    
+void MainWindow::openFile() {
     QFileDialog openFileDialog(this, "Open File",
         SettingsUtil::dialogPath(SettingsUtil::PathType::Open),
         FileUtil::fileFilter({FileKind::Binary, FileKind::Project})
@@ -488,6 +489,7 @@ void MainWindow::loadDocument(const QString& path) {
     mPtclList.setDocument(mDocument.get());
     mInspector.setDocument(mDocument.get());
     mTextureWidget.setDocument(mDocument.get());
+    connect(mDocument.get(), &Ptcl::Document::importReportReady, this, &MainWindow::showSanitizeWarningDialog);
 
     if (mDocument->emitterSetCount() != 0) {
         mSelection.set(0, 0, Ptcl::Selection::Type::EmitterSet);

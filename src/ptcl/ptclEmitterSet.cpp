@@ -78,6 +78,23 @@ std::unique_ptr<EmitterSet> EmitterSet::clone() const {
     return newSet;
 }
 
+void EmitterSet::validate(PtclSanitizeReport& report) {
+    const QString baseContext = report.context();
+
+    for (s32 i = 0; i < static_cast<s32>(mEmitters.size()); ++i) {
+        if (!mEmitters[i]) {
+            continue;
+        }
+
+        report.setContext(baseContext.isEmpty() ?
+            QStringLiteral("Emitter %1").arg(i) :
+            QStringLiteral("%1 / Emitter %2").arg(baseContext).arg(i));
+        mEmitters[i]->validate(report);
+    }
+
+    report.setContext(baseContext);
+}
+
 
 // ========================================================================== //
 
