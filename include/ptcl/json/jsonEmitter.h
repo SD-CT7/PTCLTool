@@ -21,7 +21,7 @@ std::optional<QString> exportEmitter(const Emitter& emitter, s32 idx, const QDir
 std::optional<Emitter> importEmitter(const QString& filePath, const TextureList& textures);
 
 QJsonObject exportEmitters(const EmitterList& emitters, const QDir& dir, const TextureIndexMap& textureMap);
-std::optional<EmitterList> importEmitters(const QJsonObject& emittersJson, const QDir& projectDir);
+std::optional<EmitterList> importEmitters(const QJsonObject& emittersJson, const QDir& dir, const TextureList& textures);
 
 
 // ========================================================================== //

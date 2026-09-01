@@ -101,6 +101,7 @@ set(PROJECT_SOURCES
     src/ptcl/json/json.cpp
     src/ptcl/json/jsonCommon.cpp
     src/ptcl/json/jsonEmitter.cpp
+    src/ptcl/json/jsonEmitterSet.cpp
     src/ptcl/json/jsonTexture.cpp
     src/util/imageUtil.cpp
     src/util/iconUtil.cpp
@@ -188,6 +189,7 @@ set(PROJECT_HEADERS
     include/ptcl/json/json.h
     include/ptcl/json/jsonCommon.h
     include/ptcl/json/jsonEmitter.h
+    include/ptcl/json/jsonEmitterSet.h
     include/ptcl/json/jsonTexture.h
     include/util/bitflagUtil.h
     include/util/fileKind.h

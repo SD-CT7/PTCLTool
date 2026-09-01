@@ -873,6 +873,35 @@ QJsonObject exportEmitters(const EmitterList& emitters, const QDir& dir, const T
     return emitterSetListJson;
 }
 
+std::optional<EmitterList> importEmitters(const QJsonObject& emittersJson, const QDir& dir, const TextureList& textures) {
+    EmitterList emitters{};
+    emitters.resize(emittersJson.size());
+
+    for (auto it = emittersJson.constBegin(); it != emittersJson.constEnd(); ++it) {
+        bool ok{false};
+        const size_t idx = it.key().toInt(&ok);
+        if (!ok || idx >= emitters.size()) {
+            return std::nullopt;
+        }
+
+        const QString emitterPath = dir.filePath(it.value().toString());
+        auto emitter = importEmitter(emitterPath, textures);
+        if (!emitter) {
+            return std::nullopt;
+        }
+
+        emitters[idx] = std::make_unique<Emitter>(std::move(*emitter));
+    }
+
+    for (const auto& emitter : emitters) {
+        if (!emitter) {
+            return std::nullopt;
+        }
+    }
+
+    return emitters;
+}
+
 
 // ========================================================================== //
 
