@@ -1,5 +1,6 @@
 #include "ptcl/json/jsonCommon.h"
 
+#include <QFileInfo>
 #include <QSaveFile>
 #include <QIODevice>
 #include <QFile>
@@ -243,6 +244,18 @@ std::optional<QJsonObject> readJsonFile(const QString& filePath) {
     }
 
     return document.object();
+}
+
+QDir sourceProjectDirFor(const QString& filePath, const QString& hintDir, s32 levelsUp) {
+    if (!hintDir.isEmpty()) {
+        return QDir{hintDir};
+    }
+
+    QDir dir{QFileInfo{filePath}.absolutePath()};
+    for (s32 i = 0; i < levelsUp; ++i) {
+        dir.cdUp();
+    }
+    return dir;
 }
 
 

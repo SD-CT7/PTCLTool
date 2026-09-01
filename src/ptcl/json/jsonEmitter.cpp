@@ -840,6 +840,115 @@ std::optional<Emitter> emitterFromJson(const QJsonObject& json, const TextureLis
     return emitter;
 }
 
+bool exportEmitter(const Emitter& emitter, const QString& filePath) {
+    return writeJsonFile(emitterToJson(emitter, true, nullptr), filePath);
+}
+
+static std::optional<Emitter> importEmitterFile(const QString& filePath, const TextureList& textures) {
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
+        return std::nullopt;
+    }
+    return emitterFromJson(*readResult, textures);
+}
+
+static std::optional<ImportEmitterResult> importStandaloneEmitter(const QJsonObject& json, const QJsonValue& texVal, const QJsonValue& childTexVal) {
+    TextureList textures{};
+
+    if (texVal.isObject()) {
+        auto tex = textureFromJson(texVal.toObject());
+        if (tex) {
+            textures.push_back(std::make_unique<Texture>(std::move(*tex)));
+        }
+    }
+    if (childTexVal.isObject()) {
+        auto tex = textureFromJson(childTexVal.toObject());
+        if (tex) {
+            textures.push_back(std::make_unique<Texture>(std::move(*tex)));
+        }
+    }
+
+    auto emitter = emitterFromJson(json, textures);
+    if (!emitter) {
+        return std::nullopt;
+    }
+
+    return ImportEmitterResult{std::make_unique<Emitter>(std::move(*emitter)), std::move(textures)};
+}
+
+static std::optional<ImportEmitterResult> importLinkedEmitter(const QJsonObject& json, const QString& filePath, const QString& projectDir) {
+    const QDir sourceProjectDir = sourceProjectDirFor(filePath, projectDir, 2);
+
+    auto sourceTextures = importProjectTextures(sourceProjectDir);
+    if (!sourceTextures) {
+        return std::nullopt;
+    }
+
+    auto emitter = emitterFromJson(json, *sourceTextures);
+    if (!emitter) {
+        return std::nullopt;
+    }
+
+    TextureList resultTextures{};
+    TextureRemap remap{};
+    reIdEmitterTextures(*emitter, resultTextures, remap);
+
+    return ImportEmitterResult{std::make_unique<Emitter>(std::move(*emitter)), std::move(resultTextures)};
+}
+
+std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const QString& projectDir) {
+    const auto readResult = readJsonFile(filePath);
+    if (!readResult) {
+        return std::nullopt;
+    }
+    const auto& emitterJson = *readResult;
+
+    if (!validateMetaInfo(emitterJson["metaInfo"].toObject(), FileKind::Emitter, 1)) {
+        return std::nullopt;
+    }
+
+    const QJsonValue texVal = emitterJson["texture"];
+    const QJsonObject complexJson = emitterJson["complex"].toObject();
+    const QJsonObject childJson = complexJson["child"].toObject();
+    const QJsonValue childTexVal = childJson["texture"];
+
+    if (texVal.isObject() || childTexVal.isObject()) {
+        return importStandaloneEmitter(emitterJson, texVal, childTexVal);
+    }
+
+    return importLinkedEmitter(emitterJson, filePath, projectDir);
+}
+
+static Texture* getOrCreateReIded(Texture* sourceTex, TextureList& resultTextures, TextureRemap& remap) {
+    if (!sourceTex || sourceTex->isPlaceholder()) {
+        return nullptr;
+    }
+
+    auto it = remap.find(sourceTex);
+    if (it != remap.end()) {
+        return it->second;
+    }
+
+    auto newTex = cloneTexture(*sourceTex);
+    auto* ptr = newTex.get();
+    remap[sourceTex] = ptr;
+    resultTextures.push_back(std::move(newTex));
+    return ptr;
+}
+
+void reIdEmitterTextures(Emitter& emitter, TextureList& resultTextures, TextureRemap& remap) {
+    if (emitter.textureHandle().isValid()) {
+        if (auto* newTex = getOrCreateReIded(emitter.texture(), resultTextures, remap)) {
+            emitter.setTexture(newTex);
+        }
+    }
+    if (emitter.childTextureHandle().isValid()) {
+        if (auto* newTex = getOrCreateReIded(emitter.childTexture(), resultTextures, remap)) {
+            emitter.setChildTexture(newTex);
+        }
+    }
+}
+
 std::optional<QString> exportEmitter(const Emitter& emitter, s32 idx, const QDir& dir, const TextureIndexMap& textureMap) {
     auto emitterJson = emitterToJson(emitter, false, &textureMap);
 
@@ -851,14 +960,6 @@ std::optional<QString> exportEmitter(const Emitter& emitter, s32 idx, const QDir
     }
 
     return emitterName;
-}
-
-std::optional<Emitter> importEmitter(const QString& filePath, const TextureList& textures) {
-    const auto readResult = readJsonFile(filePath);
-    if (!readResult) {
-        return std::nullopt;
-    }
-    return emitterFromJson(readResult.value(), textures);
 }
 
 QJsonObject exportEmitters(const EmitterList& emitters, const QDir& dir, const TextureIndexMap& textureMap) {
@@ -885,7 +986,7 @@ std::optional<EmitterList> importEmitters(const QJsonObject& emittersJson, const
         }
 
         const QString emitterPath = dir.filePath(it.value().toString());
-        auto emitter = importEmitter(emitterPath, textures);
+        auto emitter = importEmitterFile(emitterPath, textures);
         if (!emitter) {
             return std::nullopt;
         }

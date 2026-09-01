@@ -8,9 +8,11 @@
 
 #include "ptcl/ptclEmitter.h"
 
+#include <QDir>
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <map>
 #include <unordered_map>
 
 
@@ -21,6 +23,7 @@ namespace Ptcl::Json {
 
 
 using TextureIndexMap = std::unordered_map<const Texture*, s32>;
+using TextureRemap = std::map<Texture*, Texture*>;
 
 QJsonObject createMetaInfo(FileKind kind, s32 version);
 bool validateMetaInfo(const QJsonObject& metaInfo, FileKind kind, s32 version);
@@ -55,6 +58,8 @@ Emitter::AlphaAnim alphaAnimFromJson(const QJsonObject& json);
 
 bool writeJsonFile(const QJsonObject& root, const QString& filePath);
 std::optional<QJsonObject> readJsonFile(const QString& filePath);
+
+QDir sourceProjectDirFor(const QString& filePath, const QString& hintDir, s32 levelsUp);
 
 
 // ========================================================================== //

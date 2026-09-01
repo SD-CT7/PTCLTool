@@ -57,6 +57,17 @@ std::optional<Texture> textureFromJson(const QJsonObject& json) {
     };
 }
 
+std::unique_ptr<Texture> cloneTexture(const Texture& texture) {
+    std::vector<u8> data{texture.textureDataRaw().begin(), texture.textureDataRaw().end()};
+
+    return std::make_unique<Texture>(
+        &data,
+        texture.textureData().width(),
+        texture.textureData().height(),
+        texture.textureFormat()
+    );
+}
+
 std::optional<QString> exportTexture(const Texture& texture, s32 idx, const QDir& dir) {
     QJsonObject json = textureToJson(texture);
     json.insert("metaInfo", createMetaInfo(FileKind::Texture, 1));
@@ -120,6 +131,28 @@ std::optional<TextureList> importTextures(const QJsonObject& texturesJson, const
         textures[idx] = (std::make_unique<Texture>(std::move(*texture)));
     }
     return textures;
+}
+
+std::optional<TextureList> importProjectTextures(const QDir& projectDir) {
+    const QDir texDir{projectDir.filePath("textures")};
+    if (!texDir.exists()) {
+        return std::nullopt;
+    }
+
+    const auto projFileExt = FileUtil::fileExtention(FileKind::Project);
+    const auto projFiles = projectDir.entryList({projFileExt}, QDir::Files);
+    if (projFiles.isEmpty()) {
+        return std::nullopt;
+    }
+
+    const auto projReadResult = readJsonFile(projectDir.filePath(projFiles.first()));
+    if (!projReadResult) {
+        return std::nullopt;
+    }
+    const auto& projJson = *projReadResult;
+
+    const QJsonObject texturesJson = projJson.value("textures").toObject();
+    return importTextures(texturesJson, projectDir);
 }
 
 

@@ -2,9 +2,6 @@
 
 #include "ptcl/ptcl.h"
 
-#include <memory>
-#include <optional>
-
 
 namespace Ptcl::Json {
 
@@ -13,24 +10,6 @@ namespace Ptcl::Json {
 
 
 bool exportProject(const PtclRes& res, const QString& dirPath);
-
-bool exportEmitter(const Emitter& emitter, const QString& filePath);
-
-bool exportEmitterSet(const EmitterSet& emitterSet, const QString& filePath);
-
-struct ImportEmitterResult {
-    std::unique_ptr<Emitter> emitter;
-    TextureList textures;
-};
-
-std::optional<ImportEmitterResult> importEmitter(const QString& filePath, const QString& projectDir = {});
-
-struct ImportEmitterSetResult {
-    std::unique_ptr<EmitterSet> emitterSet;
-    TextureList textures;
-};
-
-std::optional<ImportEmitterSetResult> importEmitterSet(const QString& filePath, const QString& projectDir = {});
 
 bool importProject(const QString& projPath, PtclRes& res, PtclSanitizeReport& report);
 
