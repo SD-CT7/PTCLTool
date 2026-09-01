@@ -11,12 +11,16 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include <unordered_map>
+
 
 namespace Ptcl::Json {
 
 
 // ========================================================================== //
 
+
+using TextureIndexMap = std::unordered_map<const Texture*, s32>;
 
 QJsonObject createMetaInfo(FileKind kind, s32 version);
 bool validateMetaInfo(const QJsonObject& metaInfo, FileKind kind, s32 version);
@@ -25,6 +29,8 @@ std::optional<FileKind> classifyJson(const QJsonObject& json);
 
 QJsonValue floatToJson(f32 value);
 f32 jsonToFloat(const QJsonValue& json);
+
+bool isNumberValue(const QJsonValue& value);
 
 QJsonObject vec3fToJson(const Math::Vector3f& vector);
 Math::Vector3f jsonToVec3f(const QJsonObject& json);

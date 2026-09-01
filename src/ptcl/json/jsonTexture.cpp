@@ -1,6 +1,7 @@
 #include "ptcl/json/jsonTexture.h"
 
 #include "ptcl/json/jsonCommon.h"
+#include "util/fileUtil.h"
 
 
 namespace Ptcl::Json {
@@ -60,7 +61,8 @@ std::optional<QString> exportTexture(const Texture& texture, s32 idx, const QDir
     QJsonObject json = textureToJson(texture);
     json.insert("metaInfo", createMetaInfo(FileKind::Texture, 1));
 
-    auto textureName = QStringLiteral("tex_%1.ptex").arg(idx);
+    auto textureName = QStringLiteral("tex_%1").arg(idx);
+    textureName = FileUtil::ensureExtention(textureName, FileKind::Texture);
 
     if (!writeJsonFile(json, dir.filePath(textureName))) {
         return std::nullopt;

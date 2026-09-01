@@ -77,6 +77,9 @@ public:
     Emitter(const Emitter&) = delete;
     Emitter& operator=(const Emitter&) = delete;
 
+    Emitter(Emitter&&) noexcept = default;
+    Emitter& operator=(Emitter&&) noexcept = default;
+
     std::unique_ptr<Emitter> clone() const;
 
     BitFlag<EmitterFlag>& flags();

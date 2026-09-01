@@ -75,6 +75,10 @@ f32 jsonToFloat(const QJsonValue& json) {
     return static_cast<f32>(json.toDouble());
 }
 
+bool isNumberValue(const QJsonValue& value) {
+    return value.isDouble() || (value.isString() && value.toString() == "-0");
+}
+
 QJsonObject vec3fToJson(const Math::Vector3f& vector) {
     QJsonObject vectorJson{};
     vectorJson["x"] = floatToJson(vector.getX());
