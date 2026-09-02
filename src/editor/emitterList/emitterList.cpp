@@ -59,25 +59,23 @@ EmitterList::EmitterList(QWidget* parent) :
 
         updateToolbarForSelection(item);
 
-        const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-        const s32 setIndex = item->data(sRoleSetIdx).toInt();
-        const s32 emitterIndex = item->data(sRoleEmitterIdx).toInt();
+        const ListNodeRef ref = resolveListNodeRef(item);
 
-        switch (type) {
+        switch (ref.type) {
         case NodeType::EmitterSet:
-            mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
+            mSelection->set(ref.setIndex, 0, Ptcl::Selection::Type::EmitterSet);
             break;
         case NodeType::Emitter:
-            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::Emitter);
+            mSelection->set(ref.setIndex, ref.emitterIndex, Ptcl::Selection::Type::Emitter);
             break;
         case NodeType::ChildData:
-            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterChild);
+            mSelection->set(ref.setIndex, ref.emitterIndex, Ptcl::Selection::Type::EmitterChild);
             break;
         case NodeType::Fluctuation:
-            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterFlux);
+            mSelection->set(ref.setIndex, ref.emitterIndex, Ptcl::Selection::Type::EmitterFlux);
             break;
         case NodeType::Field:
-            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterField);
+            mSelection->set(ref.setIndex, ref.emitterIndex, Ptcl::Selection::Type::EmitterField);
             break;
         default:
             break;
@@ -209,11 +207,13 @@ void EmitterList::showContextMenu(const QPoint& pos) {
         return;
     }
 
+    const ListNodeRef ref = resolveListNodeRef(item);
+
     mContextMenu.showForItem(
         mTreeView.viewport()->mapToGlobal(pos),
-        item->data(sRoleSetIdx).toInt(),
-        item->data(sRoleEmitterIdx).toInt(),
-        static_cast<NodeType>(item->data(sRoleNodeType).toUInt()),
+        ref.setIndex,
+        ref.emitterIndex,
+        ref.type,
         item
     );
 }

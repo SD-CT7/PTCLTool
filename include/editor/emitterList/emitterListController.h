@@ -48,6 +48,9 @@ signals:
     void contentChanged();
 
 private:
+    static QString itemLabel(s32 index, const QString& name);
+    static QStandardItem* makeNode(const QString& label, NodeType type, s32 setIndex, s32 emitterIndex = -1);
+
     void insertEmitterSetNode(s32 setIndex);
     void insertEmitterNode(QStandardItem* setItem, s32 setIndex, s32 emitterIndex);
     void addComplexNodes(QStandardItem* emitterItem, s32 setIndex, s32 emitterIndex);

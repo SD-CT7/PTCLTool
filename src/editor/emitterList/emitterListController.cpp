@@ -83,6 +83,21 @@ const QStandardItemModel* EmitterListController::model() const {
     return &mListModel;
 }
 
+QString EmitterListController::itemLabel(s32 index, const QString& name) {
+    return QString("%1: %2").arg(index).arg(name);
+}
+
+QStandardItem* EmitterListController::makeNode(const QString& label, NodeType type, s32 setIndex, s32 emitterIndex) {
+    auto* item = new QStandardItem(label);
+    item->setEditable(false);
+    item->setData(static_cast<s32>(type), sRoleNodeType);
+    item->setData(setIndex, sRoleSetIdx);
+    if (emitterIndex >= 0) {
+        item->setData(emitterIndex, sRoleEmitterIdx);
+    }
+    return item;
+}
+
 void EmitterListController::populate() {
     if (!mDocument) {
         return;
@@ -134,11 +149,7 @@ void EmitterListController::insertEmitterSetNode(s32 setIndex) {
         return;
     }
 
-    QString setName = QString("%1: %2").arg(setIndex).arg(set->name());
-    auto* setItem = new QStandardItem(setName);
-    setItem->setEditable(false);
-    setItem->setData(static_cast<s32>(NodeType::EmitterSet), sRoleNodeType);
-    setItem->setData(setIndex, sRoleSetIdx);
+    auto* setItem = makeNode(itemLabel(setIndex, set->name()), NodeType::EmitterSet, setIndex);
 
     for (s32 emitterIndex = 0; emitterIndex < mDocument->emitterCount(setIndex); ++emitterIndex) {
         insertEmitterNode(setItem, setIndex, emitterIndex);
@@ -152,12 +163,7 @@ void EmitterListController::insertEmitterNode(QStandardItem* setItem, s32 setInd
         return;
     }
 
-    QString emitterName = QString("%1: %2").arg(emitterIndex).arg(emitter->name());
-    auto* emitterItem = new QStandardItem(emitterName);
-    emitterItem->setEditable(false);
-    emitterItem->setData(static_cast<s32>(NodeType::Emitter), sRoleNodeType);
-    emitterItem->setData(setIndex, sRoleSetIdx);
-    emitterItem->setData(emitterIndex, sRoleEmitterIdx);
+    auto* emitterItem = makeNode(itemLabel(emitterIndex, emitter->name()), NodeType::Emitter, setIndex, emitterIndex);
     emitterItem->setData(static_cast<u32>(emitter->type()), sRoleEmitterType);
 
     if (emitter->type() == Ptcl::EmitterType::Complex || emitter->type() == Ptcl::EmitterType::Compact) {
@@ -219,11 +225,7 @@ void EmitterListController::ensureComplexNode(QStandardItem* emitterItem, NodeTy
     auto* item = findChildByType(emitterItem, type);
 
     if (!item) {
-        item = new QStandardItem(label);
-        item->setEditable(false);
-        item->setData(static_cast<s32>(type), sRoleNodeType);
-        item->setData(setIndex, sRoleSetIdx);
-        item->setData(emitterIndex, sRoleEmitterIdx);
+        item = makeNode(label, type, setIndex, emitterIndex);
         emitterItem->appendRow(item);
     }
 
@@ -278,7 +280,7 @@ void EmitterListController::reindexEmitters(QStandardItem* setItem, s32 setIndex
         if (!emitter) {
             continue;
         }
-        emitterItem->setText(QString("%1: %2").arg(i).arg(emitter->name()));
+        emitterItem->setText(itemLabel(i, emitter->name()));
 
         for (s32 c = 0; c < emitterItem->rowCount(); ++c) {
             QStandardItem* child = emitterItem->child(c);
@@ -301,7 +303,7 @@ void EmitterListController::reindexEmitterSets() {
         if (!set) {
             continue;
         }
-        setItem->setText(QString("%1: %2").arg(i).arg(set->name()));
+        setItem->setText(itemLabel(i, set->name()));
         reindexEmitters(setItem, i);
     }
 }
@@ -347,8 +349,7 @@ void EmitterListController::updateEmitterName(s32 setIndex, s32 emitterIndex) {
         return;
     }
 
-    QString emitterName = QString("%1: %2").arg(emitterIndex).arg(emitter->name());
-    emitterItem->setText(emitterName);
+    emitterItem->setText(itemLabel(emitterIndex, emitter->name()));
 }
 
 void EmitterListController::updateEmitterSetName(s32 setIndex) {
@@ -362,8 +363,7 @@ void EmitterListController::updateEmitterSetName(s32 setIndex) {
         return;
     }
 
-    QString setName = QString("%1: %2").arg(setIndex).arg(set->name());
-    setItem->setText(setName);
+    setItem->setText(itemLabel(setIndex, set->name()));
 }
 
 void EmitterListController::addEmitterSet(QStandardItem* contextItem) {
@@ -383,13 +383,8 @@ void EmitterListController::addEmitter(QStandardItem* contextItem) {
         return;
     }
 
-    auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-    QStandardItem* setItem = contextItem;
-    if (type == NodeType::Emitter) {
-        setItem = contextItem->parent();
-    }
-
-    s32 setIndex = setItem->data(sRoleSetIdx).toInt();
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
+    const s32 setIndex = ref.setIndex;
     const auto& emitterSet = mDocument->emitterSet(setIndex);
     const s32 emitterIndex = emitterSet->emitterCount();
 
@@ -399,16 +394,17 @@ void EmitterListController::addEmitter(QStandardItem* contextItem) {
 }
 
 void EmitterListController::removeItem(QStandardItem* contextItem) {
-    if (!contextItem) {
-        return;
-    }
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
 
-    auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-
-    if (type == NodeType::Emitter) {
-        removeEmitter(contextItem->parent(), contextItem);
-    } else if (type == NodeType::EmitterSet) {
-        removeEmitterSet(contextItem);
+    switch (ref.type) {
+    case NodeType::Emitter:
+        removeEmitter(ref.setItem, ref.item);
+        break;
+    case NodeType::EmitterSet:
+        removeEmitterSet(ref.item);
+        break;
+    default:
+        break;
     }
 }
 
@@ -417,8 +413,9 @@ void EmitterListController::removeEmitter(QStandardItem* setItem, QStandardItem*
         return;
     }
 
-    const s32 setIndex = setItem->data(sRoleSetIdx).toInt();
-    const s32 emitterIndex = emitterItem->data(sRoleEmitterIdx).toInt();
+    const ListNodeRef ref = resolveListNodeRef(emitterItem);
+    const s32 setIndex = ref.setIndex;
+    const s32 emitterIndex = ref.emitterIndex;
 
     const auto& emitter = mDocument->emitter(setIndex, emitterIndex);
 
@@ -440,7 +437,6 @@ void EmitterListController::removeEmitterSet(QStandardItem* setItem) {
 
     const s32 setIndex = setItem->data(sRoleSetIdx).toInt();
     const auto& emitterSet = mDocument->emitterSet(setIndex);
-
     const auto confirmationMessage = QString("Are you sure you want to remove the EmitterSet '%1'?").arg(emitterSet->name());
     if (QMessageBox::question(nullptr, "Remove EmitterSet", confirmationMessage) != QMessageBox::Yes) {
         return;
@@ -457,17 +453,19 @@ void EmitterListController::copyItem(QStandardItem* contextItem) {
         return;
     }
 
-    const auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
     mClipboardSet.reset();
     mClipboardEmitter.reset();
 
-    if (type == NodeType::EmitterSet) {
-        const s32 setIndex = contextItem->data(sRoleSetIdx).toInt();
-        mClipboardSet = mDocument->emitterSet(setIndex)->clone();
-    } else if (type == NodeType::Emitter) {
-        const s32 setIndex = contextItem->parent()->data(sRoleSetIdx).toInt();
-        const s32 emitterIndex = contextItem->data(sRoleEmitterIdx).toInt();
-        mClipboardEmitter = mDocument->emitter(setIndex, emitterIndex)->clone();
+    switch (ref.type) {
+    case NodeType::EmitterSet:
+        mClipboardSet = mDocument->emitterSet(ref.setIndex)->clone();
+        break;
+    case NodeType::Emitter:
+        mClipboardEmitter = mDocument->emitter(ref.setIndex, ref.emitterIndex)->clone();
+        break;
+    default:
+        break;
     }
 
     emit contentChanged();
@@ -479,24 +477,18 @@ void EmitterListController::pasteItem(QStandardItem* contextItem) {
     }
 
     if (mClipboardSet) {
+        const s32 setIndex = mDocument->emitterSetCount();
         mDocument->addEmitterSet("Paste EmitterSet", mClipboardSet->clone());
 
-        const s32 setIndex = mDocument->emitterSetCount() - 1;
         mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
     } else if (mClipboardEmitter) {
-        auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-
-        s32 setIndex;
-        if (type == NodeType::Emitter) {
-            setIndex = contextItem->parent()->data(sRoleSetIdx).toInt();
-        } else {
-            setIndex = contextItem->data(sRoleSetIdx).toInt();
-        }
+        const ListNodeRef ref = resolveListNodeRef(contextItem);
+        const s32 setIndex = ref.setIndex;
 
         auto set = mDocument->emitterSet(setIndex);
+        const s32 emitterIndex = set->emitterCount();
         mDocument->addEmitter("Paste Emitter", setIndex, mClipboardEmitter->clone());
 
-        const s32 emitterIndex = set->emitterCount() - 1;
         mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::Emitter);
     }
 
@@ -504,16 +496,17 @@ void EmitterListController::pasteItem(QStandardItem* contextItem) {
 }
 
 void EmitterListController::duplicateItem(QStandardItem* contextItem) {
-    if (!contextItem) {
-        return;
-    }
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
 
-    auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-
-    if (type == NodeType::EmitterSet) {
-        duplicateEmitterSet(contextItem);
-    } else if (type == NodeType::Emitter) {
-        duplicateEmitter(contextItem);
+    switch (ref.type) {
+    case NodeType::EmitterSet:
+        duplicateEmitterSet(ref.item);
+        break;
+    case NodeType::Emitter:
+        duplicateEmitter(ref.item);
+        break;
+    default:
+        break;
     }
 }
 
@@ -522,15 +515,15 @@ void EmitterListController::duplicateEmitterSet(QStandardItem* contextItem) {
         return;
     }
 
-    const auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-    if (type != NodeType::EmitterSet) {
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
+    if (!ref.isEmitterSet()) {
         return;
     }
 
-    const s32 setIndex = contextItem->data(sRoleSetIdx).toInt();
+    const s32 setIndex = ref.setIndex;
+    const s32 newSetIndex = mDocument->emitterSetCount();
     mDocument->addEmitterSet("Duplicate EmitterSet", mDocument->emitterSet(setIndex)->clone());
 
-    const s32 newSetIndex = mDocument->emitterSetCount() - 1;
     mSelection->set(newSetIndex, 0, Ptcl::Selection::Type::EmitterSet);
     emit contentChanged();
 }
@@ -540,22 +533,21 @@ void EmitterListController::duplicateEmitter(QStandardItem* contextItem) {
         return;
     }
 
-    const auto type = static_cast<NodeType>(contextItem->data(sRoleNodeType).toUInt());
-    if (type != NodeType::Emitter) {
+    const ListNodeRef ref = resolveListNodeRef(contextItem);
+    if (!ref.isEmitter()) {
         return;
     }
 
-    const s32 setIndex = contextItem->parent()->data(sRoleSetIdx).toInt();
-    const s32 emitterIndex = contextItem->data(sRoleEmitterIdx).toInt();
+    const s32 setIndex = ref.setIndex;
+    const s32 emitterIndex = ref.emitterIndex;
     auto set = mDocument->emitterSet(setIndex);
 
+    const s32 newEmitterIndex = set->emitterCount();
     mDocument->addEmitter("Duplicate Emitter", setIndex, mDocument->emitter(setIndex, emitterIndex)->clone());
 
-    const s32 newEmitterIndex = set->emitterCount() - 1;
     mSelection->set(setIndex, newEmitterIndex, Ptcl::Selection::Type::Emitter);
     emit contentChanged();
 }
-
 
 bool EmitterListController::importEmitterSet(const QString& filePath) {
     if (!mDocument || filePath.isEmpty()) {
@@ -570,7 +562,6 @@ bool EmitterListController::importEmitterSet(const QString& filePath) {
     return true;
 }
 
-
 bool EmitterListController::importEmitter(s32 setIndex, const QString& filePath) {
     if (!mDocument || filePath.isEmpty()) {
         return false;
@@ -584,7 +575,6 @@ bool EmitterListController::importEmitter(s32 setIndex, const QString& filePath)
     return true;
 }
 
-
 bool EmitterListController::exportEmitter(s32 setIndex, s32 emitterIndex, const QString& filePath) {
     if (!mDocument || filePath.isEmpty()) {
         return false;
@@ -592,7 +582,6 @@ bool EmitterListController::exportEmitter(s32 setIndex, s32 emitterIndex, const 
 
     return mDocument->exportEmitter(setIndex, emitterIndex, filePath);
 }
-
 
 bool EmitterListController::exportEmitterSet(s32 setIndex, const QString& filePath) {
     if (!mDocument || filePath.isEmpty()) {
