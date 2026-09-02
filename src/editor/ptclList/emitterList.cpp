@@ -1,4 +1,4 @@
-#include "editor/ptclListWidget.h"
+#include "editor/ptclList/emitterList.h"
 #include "util/iconUtil.h"
 
 #include <functional>
@@ -10,7 +10,7 @@ namespace PtclEditor {
 // ========================================================================== //
 
 
-PtclList::PtclList(QWidget* parent) :
+EmitterList::EmitterList(QWidget* parent) :
     QWidget{parent} {
     // Toolbar
     mToolBar.setIconSize(QSize(24, 24));
@@ -48,7 +48,7 @@ PtclList::PtclList(QWidget* parent) :
     mTreeView.setModel(&mProxyModel);
     mTreeView.setHeaderHidden(true);
     mTreeView.setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(&mTreeView, &QTreeView::customContextMenuRequested, this, &PtclList::showContextMenu);
+    connect(&mTreeView, &QTreeView::customContextMenuRequested, this, &EmitterList::showContextMenu);
     connect(&mTreeView, &QTreeView::clicked, this, [this](const QModelIndex& proxyIndex) {
         const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
         QStandardItem* item = mListController.model()->itemFromIndex(sourceIndex);
@@ -87,7 +87,7 @@ PtclList::PtclList(QWidget* parent) :
 
     // Search Box
     mSearchBox.setPlaceholderText("Search");
-    connect(&mSearchBox, &QLineEdit::textChanged, this, &PtclList::filterList);
+    connect(&mSearchBox, &QLineEdit::textChanged, this, &EmitterList::filterList);
     connect(&mSearchBox, &QLineEdit::textChanged, this, [this] {
         mTreeView.expandAll();
     });
@@ -125,16 +125,16 @@ PtclList::PtclList(QWidget* parent) :
     setLayout(&mMainLayout);
 
     applyIcons();
-    connect(&IconManager::instance(), &IconManager::iconsChanged, this, &PtclList::applyIcons);
+    connect(&IconManager::instance(), &IconManager::iconsChanged, this, &EmitterList::applyIcons);
 }
 
-QStandardItem* PtclList::currentItem() const {
+QStandardItem* EmitterList::currentItem() const {
     const QModelIndex proxyIndex = mTreeView.currentIndex();
     const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
     return mListController.model()->itemFromIndex(sourceIndex);
 }
 
-QIcon PtclList::nodeIcon(NodeType type) const {
+QIcon EmitterList::nodeIcon(NodeType type) const {
     const char* name = nullptr;
 
     switch (type) {
@@ -157,7 +157,7 @@ QIcon PtclList::nodeIcon(NodeType type) const {
     );
 }
 
-void PtclList::applyIcons() {
+void EmitterList::applyIcons() {
     constexpr QSize iconSize{24, 24};
 
     IconUtil::setIcon(mAddEmitterSetAction, "add_emitterset", this, iconSize);
@@ -191,7 +191,7 @@ void PtclList::applyIcons() {
     }
 }
 
-void PtclList::showContextMenu(const QPoint& pos) {
+void EmitterList::showContextMenu(const QPoint& pos) {
     if (!mDocument) {
         return;
     }
@@ -212,7 +212,7 @@ void PtclList::showContextMenu(const QPoint& pos) {
     );
 }
 
-void PtclList::setDocument(Ptcl::Document* document) {
+void EmitterList::setDocument(Ptcl::Document* document) {
     mDocument = document;
     mListController.setDocument(document);
     mContextMenu.setDocument(document);
@@ -230,7 +230,7 @@ void PtclList::setDocument(Ptcl::Document* document) {
     setEnabled(true);
 }
 
-void PtclList::setSelection(Ptcl::Selection* selection) {
+void EmitterList::setSelection(Ptcl::Selection* selection) {
     mSelection = selection;
     mListController.setSelection(selection);
 
@@ -269,11 +269,11 @@ void PtclList::setSelection(Ptcl::Selection* selection) {
     });
 }
 
-void PtclList::filterList(const QString& text) {
+void EmitterList::filterList(const QString& text) {
     mProxyModel.setFilterFixedString(text);
 }
 
-void PtclList::updateToolbarForSelection(const QStandardItem* item) {
+void EmitterList::updateToolbarForSelection(const QStandardItem* item) {
     mAddEmitterSetAction->setEnabled(true);
     mAddEmitterAction->setEnabled(false);
     mRemoveAction->setEnabled(false);

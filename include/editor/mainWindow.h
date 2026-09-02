@@ -4,7 +4,7 @@
 #include "editor/components/panelSplitter.h"
 #include "ptcl/ptclDocument.h"
 #include "editor/inspector/inspectorPanel.h"
-#include "editor/ptclListWidget.h"
+#include "editor/ptclList/emitterList.h"
 #include "editor/texture/textureListWidget.h"
 
 #include <QGroupBox>
@@ -102,7 +102,7 @@ private:
 
     QUndoView mUndoView{};
 
-    PtclEditor::PtclList mPtclList{};
+    PtclEditor::EmitterList mEmitterList{};
     PtclEditor::InspectorPanel mInspector{};
     PtclEditor::TextureListWidget mTextureWidget{};
 

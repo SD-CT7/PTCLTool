@@ -37,7 +37,7 @@ void MainWindow::setupUi() {
 
     // Left Column: Ptcl List above History
     mLeftSplitter = new PanelSplitter(Qt::Vertical, this);
-    mLeftSplitter->addWidget(&mPtclList);
+    mLeftSplitter->addWidget(&mEmitterList);
     mLeftSplitter->addWidget(&mHistoryPanel);
     mLeftSplitter->setStretchFactor(0, 1);
     mLeftSplitter->setStretchFactor(1, 0);
@@ -63,9 +63,9 @@ void MainWindow::setupUi() {
     mTexturePanel.setContent(&mTextureWidget);
 
     // Ptcl List
-    mPtclList.setEnabled(false);
-    mPtclList.setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-    mPtclList.setSelection(&mSelection);
+    mEmitterList.setEnabled(false);
+    mEmitterList.setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    mEmitterList.setSelection(&mSelection);
 
     // Inspector
     mInspector.setEnabled(false);
@@ -97,7 +97,7 @@ void MainWindow::setupUi() {
 }
 
 MainWindow::~MainWindow() {
-    mPtclList.setDocument(nullptr);
+    mEmitterList.setDocument(nullptr);
     mInspector.setDocument(nullptr);
     mTextureWidget.setDocument(nullptr);
 
@@ -437,7 +437,7 @@ void MainWindow::loadDocument(const QString& path) {
         return;
     }
 
-    mPtclList.setDocument(nullptr);
+    mEmitterList.setDocument(nullptr);
     mInspector.setDocument(nullptr);
     mTextureWidget.setDocument(nullptr);
 
@@ -471,7 +471,7 @@ void MainWindow::loadDocument(const QString& path) {
     SettingsUtil::setDialogPath(SettingsUtil::PathType::Open, path);
     updateRecentFileList();
 
-    mPtclList.setDocument(mDocument.get());
+    mEmitterList.setDocument(mDocument.get());
     mInspector.setDocument(mDocument.get());
     mTextureWidget.setDocument(mDocument.get());
     connect(mDocument.get(), &Ptcl::Document::importReportReady, this, &MainWindow::showSanitizeWarningDialog);

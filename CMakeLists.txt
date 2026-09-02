@@ -35,7 +35,6 @@ endif()
 set(PROJECT_SOURCES
     src/main.cpp
     src/editor/mainWindow.cpp
-    src/editor/ptclListWidget.cpp
     src/editor/components/animGraph.cpp
     src/editor/components/clickableLabel.cpp
     src/editor/components/colorChannelSlider.cpp
@@ -79,6 +78,7 @@ set(PROJECT_SOURCES
     src/editor/inspector/field/fieldPosAddInspector.cpp
     src/editor/inspector/field/fieldRandomInspector.cpp
     src/editor/inspector/field/fieldSpinInspector.cpp
+    src/editor/ptclList/emitterList.cpp
     src/editor/ptclList/emitterFilterMenu.cpp
     src/editor/ptclList/emitterFilterProxyModel.cpp
     src/editor/ptclList/emitterListContextMenu.cpp
@@ -116,7 +116,6 @@ set(PROJECT_SOURCES
 set(PROJECT_HEADERS
     include/typedefs.h
     include/editor/mainWindow.h
-    include/editor/ptclListWidget.h
     include/editor/components/animGraph.h
     include/editor/components/clickableLabel.h
     include/editor/components/colorChannelSlider.h
@@ -163,6 +162,7 @@ set(PROJECT_HEADERS
     include/editor/inspector/field/fieldPosAddInspector.h
     include/editor/inspector/field/fieldRandomInspector.h
     include/editor/inspector/field/fieldSpinInspector.h
+    include/editor/ptclList/emitterList.h
     include/editor/ptclList/emitterFilterMenu.h
     include/editor/ptclList/emitterFilterProxyModel.h
     include/editor/ptclList/emitterListContextMenu.h

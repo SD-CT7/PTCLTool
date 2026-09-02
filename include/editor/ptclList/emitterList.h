@@ -24,10 +24,10 @@ namespace PtclEditor {
 // ========================================================================== //
 
 
-class PtclList : public QWidget {
+class EmitterList : public QWidget {
     Q_OBJECT
 public:
-    explicit PtclList(QWidget* parent = nullptr);
+    explicit EmitterList(QWidget* parent = nullptr);
 
     void setDocument(Ptcl::Document* document);
     void setSelection(Ptcl::Selection* selection);
