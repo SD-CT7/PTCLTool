@@ -23,20 +23,24 @@ IconManager::IconManager() {
 
 QIcon IconManager::icon(const QString& path, QPalette::ColorRole role, const QWidget* widget, const QSize& size, IconRotation rotation) {
     const QPalette& palette = widget ? widget->palette() : QGuiApplication::palette();
-    const auto& color = palette.color(role);
+    const QColor color = palette.color(role);
+    const QColor disabledColor = palette.color(QPalette::Disabled, role);
 
     const CacheKey key {
-        .path     = path,
-        .color    = color,
-        .size     = size,
-        .rotation = rotation
+        .path           = path,
+        .color          = color,
+        .disabledColor  = disabledColor,
+        .size           = size,
+        .rotation       = rotation
     };
 
     if (auto it = mCache.find(key); it != mCache.end()) {
         return it->second;
     }
 
-    QIcon result = renderIcon(path, color, size, rotation);
+    QIcon result;
+    result.addPixmap(renderIcon(path, color, size, rotation), QIcon::Normal, QIcon::Off);
+    result.addPixmap(renderIcon(path, disabledColor, size, rotation), QIcon::Disabled, QIcon::Off);
 
     mCache.insert_or_assign(key, result);
     return result;

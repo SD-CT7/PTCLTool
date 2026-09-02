@@ -48,6 +48,7 @@ private:
     struct CacheKey {
         QString path;
         QColor color;
+        QColor disabledColor;
         QSize size;
         IconRotation rotation;
 
@@ -64,6 +65,7 @@ private:
 
             combine(qHash(key.path));
             combine(qHash(key.color.rgba()));
+            combine(qHash(key.disabledColor.rgba()));
             combine(qHash(key.size));
             combine(qHash(key.rotation));
 
