@@ -1,0 +1,81 @@
+#pragma once
+
+#include "editor/ptclList/ptclListRoles.h"
+#include "ptcl/ptclDocument.h"
+
+#include <QObject>
+#include <QStandardItemModel>
+
+#include <memory>
+
+
+namespace PtclEditor {
+
+
+// ========================================================================== //
+
+
+class EmitterListController : public QObject {
+    Q_OBJECT
+public:
+    explicit EmitterListController(QObject* parent = nullptr);
+
+    void setDocument(Ptcl::Document* document);
+    void setSelection(Ptcl::Selection* selection);
+
+    QStandardItemModel* model();
+    const QStandardItemModel* model() const;
+
+    void populate();
+
+    QStandardItem* findItem(s32 setIndex, s32 emitterIndex, Ptcl::Selection::Type type) const;
+
+    bool canPaste() const;
+
+    void addEmitterSet(QStandardItem* contextItem = nullptr);
+    void addEmitter(QStandardItem* contextItem = nullptr);
+    void removeItem(QStandardItem* contextItem = nullptr);
+    void duplicateItem(QStandardItem* contextItem = nullptr);
+    void copyItem(QStandardItem* contextItem = nullptr);
+    void pasteItem(QStandardItem* contextItem = nullptr);
+
+signals:
+    void contentChanged();
+
+private:
+    void insertEmitterSetNode(s32 setIndex);
+    void insertEmitterNode(QStandardItem* setItem, s32 setIndex, s32 emitterIndex);
+    void addComplexNodes(QStandardItem* emitterItem, s32 setIndex, s32 emitterIndex);
+    void ensureComplexNode(QStandardItem* emitterItem, NodeType type, const QString& label, s32 setIndex, s32 emitterIndex, bool enabled);
+    static QStandardItem* findChildByType(QStandardItem* parent, NodeType type);
+
+    void removeEmitter(QStandardItem* setItem, QStandardItem* emitterItem);
+    void removeEmitterSet(QStandardItem* setItem);
+    void duplicateEmitterSet(QStandardItem* contextItem);
+    void duplicateEmitter(QStandardItem* contextItem);
+
+    void reindexEmitters(QStandardItem* setItem, s32 setIndex);
+    void reindexEmitterSets();
+
+    void selectNearestValidEmitter(s32 setIndex, s32 preferredEmitter);
+    void selectNearestValidEmitterSet(s32 preferredSet);
+
+    void updateEmitter(s32 setIndex, s32 emitterIndex);
+    void updateEmitterName(s32 setIndex, s32 emitterIndex);
+    void updateEmitterSetName(s32 setIndex);
+
+private:
+    QStandardItemModel mListModel{};
+
+    Ptcl::Document* mDocument{nullptr};
+    Ptcl::Selection* mSelection{nullptr};
+
+    std::unique_ptr<Ptcl::EmitterSet> mClipboardSet{};
+    std::unique_ptr<Ptcl::Emitter> mClipboardEmitter{};
+};
+
+
+// ========================================================================== //
+
+
+} // namespace PtclEditor

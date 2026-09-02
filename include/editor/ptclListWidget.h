@@ -5,18 +5,16 @@
 #include "editor/ptclList/ptclListRoles.h"
 #include "editor/ptclList/emitterFilterMenu.h"
 #include "editor/ptclList/emitterFilterProxyModel.h"
+#include "editor/ptclList/emitterListController.h"
 
 #include <QLineEdit>
 #include <QShortcut>
-#include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QTreeView>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QToolBar>
-
-#include <memory>
 
 
 namespace PtclEditor {
@@ -33,58 +31,23 @@ public:
     void setDocument(Ptcl::Document* document);
     void setSelection(Ptcl::Selection* selection);
 
-    void updateEmitter(s32 setIndex, s32 emitterIndex);
-    void updateEmitterName(s32 setIndex, s32 emitterIndex);
-    void updateEmitterSetName(s32 setIndex);
-
 private slots:
     void filterList(const QString& text);
 
 private:
-    void populateList();
     void setupContextMenu();
     void applyIcons();
 
     QIcon nodeIcon(NodeType type) const;
 
-    void addComplexNodes(QStandardItem* emitterItem, s32 setIndex, s32 emitterIndex);
-    void ensureComplexNode(QStandardItem* emitterItem, NodeType type, const QString& label, s32 setIndex, s32 emitterIndex, bool enabled);
-
     void updateToolbarForSelection(const QStandardItem* item);
 
-    QStandardItem* findItem(s32 setIndex, s32 emitterIndex, Ptcl::Selection::Type type) const;
-    static QStandardItem* findChildByType(QStandardItem* parent, NodeType type);
-
-    void insertEmitterNode(QStandardItem* setItem, s32 setIndex, s32 emitterIndex);
-    void insertEmitterSetNode(s32 setIndex);
-
-    void addEmitter(QStandardItem* contextItem = nullptr);
-    void addEmitterSet(QStandardItem* contextItem = nullptr);
-
-    void removeItem(QStandardItem* contextItem = nullptr);
-    void removeEmitter(QStandardItem* setItem, QStandardItem* emitterItem);
-    void removeEmitterSet(QStandardItem* setItem);
-
-    void reindexEmitters(QStandardItem* setItem, s32 setIndex);
-    void reindexEmitterSets();
-
-    void selectNearestValidEmitter(s32 setIndex, s32 preferredEmitter);
-    void selectNearestValidEmitterSet(s32 preferredSet);
-
-    void expandSourceIndex(const QModelIndex& sourceIndex);
-
-    void copyItem(QStandardItem* contextItem = nullptr);
-    void pasteItem(QStandardItem* contextItem = nullptr);
-
-    void duplicateItem(QStandardItem* contextItem = nullptr);
-    void duplicateEmitterSet(QStandardItem* contextItem = nullptr);
-    void duplicateEmitter(QStandardItem* contextItem = nullptr);
+    QStandardItem* currentItem() const;
 
 private:
     Ptcl::Document* mDocument{nullptr};
     Ptcl::Selection* mSelection{nullptr};
 
-    QStandardItemModel mListModel{};
     QTreeView  mTreeView{};
     QLineEdit mSearchBox{};
     QToolButton mFilterButton{};
@@ -100,9 +63,9 @@ private:
     QVBoxLayout mMainLayout{};
 
     EmitterFilterProxyModel mProxyModel{};
+    EmitterListController mListController{};
 
-    std::unique_ptr<Ptcl::EmitterSet> mClipboardSet;
-    std::unique_ptr<Ptcl::Emitter> mClipboardEmitter;
+    QStandardItem* mContextItem{nullptr};
 
     QShortcut mCopyShortcut{QKeySequence::Copy, this};
     QShortcut mPasteShortcut{QKeySequence::Paste, this};
@@ -114,4 +77,3 @@ private:
 
 
 } //namespace PtclEditor
-
