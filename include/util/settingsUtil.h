@@ -17,6 +17,10 @@ enum class PathType {
     ImportTexture,
     ExportTexture,
     ExportProject,
+    ImportEmitter,
+    ImportEmitterSet,
+    ExportEmitter,
+    ExportEmitterSet,
 };
 
 

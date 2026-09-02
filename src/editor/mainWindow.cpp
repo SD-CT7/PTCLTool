@@ -1,5 +1,6 @@
 #include "editor/mainWindow.h"
 #include "editor/texture/textureImportDialog.h"
+#include "util/dialogUtil.h"
 #include "util/fileUtil.h"
 #include "util/settingsUtil.h"
 #include "util/stringUtil.h"
@@ -9,7 +10,6 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
 #include <QFormLayout>
@@ -305,22 +305,17 @@ void MainWindow::dropEvent(QDropEvent* event) {
 }
 
 void MainWindow::openFile() {
-    QFileDialog openFileDialog(this, "Open File",
-        SettingsUtil::dialogPath(SettingsUtil::PathType::Open),
-        FileUtil::fileFilter({FileKind::Binary, FileKind::Project})
+    const auto filePath = DialogUtil::getOpenFileName(
+        this,
+        "Open File",
+        SettingsUtil::PathType::Open,
+        {FileKind::Binary, FileKind::Project}
     );
 
-    if (openFileDialog.exec() == QFileDialog::DialogCode::Rejected) {
+    if (filePath.isEmpty()) {
         return;
     }
 
-    const auto& files = openFileDialog.selectedFiles();
-
-    if (files.isEmpty()) {
-        return;
-    }
-
-    auto filePath = files.first();
     loadDocument(filePath);
 }
 
@@ -347,19 +342,16 @@ void MainWindow::saveFileAs() {
         return;
     }
 
-    QFileDialog dialog(
+    const auto filePath = DialogUtil::getSaveFileName(
         this,
         "Save As",
-        SettingsUtil::dialogPath(SettingsUtil::PathType::Save),
-        FileUtil::fileFilter({FileKind::Binary})
+        SettingsUtil::PathType::Save,
+        {FileKind::Binary}
     );
 
-    if(dialog.exec() == QFileDialog::DialogCode::Rejected) {
+    if (filePath.isEmpty()) {
         return;
     }
-
-    auto filePath = dialog.selectedFiles().constFirst();
-    filePath = FileUtil::ensureExtention(filePath, FileKind::Binary);
 
     mDocument->save(filePath);
 
@@ -367,7 +359,6 @@ void MainWindow::saveFileAs() {
 
     mDocument->filePath() = filePath;
     SettingsUtil::addRecentFile(filePath);
-    SettingsUtil::setDialogPath(SettingsUtil::PathType::Save, filePath);
     updateRecentFileList();
     updateWindowTitle();
 }
@@ -377,11 +368,7 @@ void MainWindow::exportProject() {
         return;
     }
 
-    const auto dir = QFileDialog::getExistingDirectory(
-        this,
-        "Export",
-        SettingsUtil::dialogPath(SettingsUtil::PathType::ExportProject)
-    );
+    const auto dir = DialogUtil::getExistingDirectory(this, "Export", SettingsUtil::PathType::ExportProject);
 
     if (dir.isEmpty()) {
         return;
@@ -390,8 +377,6 @@ void MainWindow::exportProject() {
     mDocument->exportProject(dir);
 
     statusBar()->showMessage("Project Exported", 2000);
-
-    SettingsUtil::setDialogPath(SettingsUtil::PathType::ExportProject, dir);
 }
 
 void MainWindow::openRecentFile() {

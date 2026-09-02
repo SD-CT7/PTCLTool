@@ -1,8 +1,8 @@
 #include "editor/ptclListWidget.h"
+#include "util/dialogUtil.h"
 #include "util/iconUtil.h"
 
 #include <QApplication>
-#include <QFileDialog>
 #include <QMessageBox>
 
 
@@ -339,11 +339,11 @@ void PtclList::setupContextMenu() {
         });
 
         menu.addAction("Import EmitterSet", this, [this] {
-            QString filePath = QFileDialog::getOpenFileName(
+            const QString filePath = DialogUtil::getOpenFileName(
                 this,
                 "Import EmitterSet",
-                {},
-                "Emitter Set Files (*.pset)"
+                SettingsUtil::PathType::ImportEmitterSet,
+                {FileKind::EmitterSet}
             );
 
             if (filePath.isEmpty()) {
@@ -370,11 +370,11 @@ void PtclList::setupContextMenu() {
                 menu.addAction("Import Emitter", this, [this, item] {
                     s32 setIndex = item->data(sRoleSetIdx).toInt();
 
-                    QString filePath = QFileDialog::getOpenFileName(
+                    const QString filePath = DialogUtil::getOpenFileName(
                         this,
                         "Import Emitter",
-                        {},
-                        "Emitter Files (*.pemt)"
+                        SettingsUtil::PathType::ImportEmitter,
+                        {FileKind::Emitter}
                     );
 
                     if (filePath.isEmpty()) {
@@ -438,12 +438,13 @@ void PtclList::setupContextMenu() {
                         return;
                     }
 
-                    QString defaultName = emitter->name() + ".pemt";
-                    QString filePath = QFileDialog::getSaveFileName(
+                    const QString defaultName = emitter->name() + ".pemt";
+                    const QString filePath = DialogUtil::getSaveFileName(
                         this,
                         "Export Emitter",
-                        defaultName,
-                        "Emitter Files (*.pemt)"
+                        SettingsUtil::PathType::ExportEmitter,
+                        {FileKind::Emitter},
+                        defaultName
                     );
 
                     if (filePath.isEmpty()) {
@@ -461,12 +462,13 @@ void PtclList::setupContextMenu() {
                         return;
                     }
 
-                    QString defaultName = emitterSet->name() + ".pset";
-                    QString filePath = QFileDialog::getSaveFileName(
+                    const QString defaultName = emitterSet->name() + ".pset";
+                    const QString filePath = DialogUtil::getSaveFileName(
                         this,
                         "Export EmitterSet",
-                        defaultName,
-                        "Emitter Set Files (*.pset)"
+                        SettingsUtil::PathType::ExportEmitterSet,
+                        {FileKind::EmitterSet},
+                        defaultName
                     );
 
                     if (filePath.isEmpty()) {
