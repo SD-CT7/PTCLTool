@@ -52,7 +52,9 @@ PtclList::PtclList(QWidget* parent) :
     mFilterButton.setPopupMode(QToolButton::InstantPopup);
     mFilterButton.setMenu(&mFilterMenu);
 
-    setupFilterMenu();
+    connect(&mFilterMenu, &EmitterFilterMenu::emitterFilterChanged, this, [this](const EmitterFilter& filter) {
+        mProxyModel.setEmitterFilter(filter);
+    });
 
     setupContextMenu();
 
@@ -175,42 +177,6 @@ void PtclList::applyIcons() {
     for (s32 i = 0; i < mListModel.rowCount(); ++i) {
         visit(mListModel.item(i));
     }
-}
-
-void PtclList::setupFilterMenu() {
-    auto* simpleAction = mFilterMenu.addAction("Simple Emitters");
-    auto* complexAction = mFilterMenu.addAction("Complex Emitters");
-    auto* compactAction = mFilterMenu.addAction("Compact Emitters");
-    mFilterMenu.addSeparator();
-    auto* allAction = mFilterMenu.addAction("Show All");
-
-    for (auto* act : { simpleAction, complexAction, compactAction }) {
-        act->setCheckable(true);
-        act->setChecked(true);
-    }
-
-    connect(allAction, &QAction::triggered, this, [simpleAction, complexAction, compactAction, this] {
-        simpleAction->setChecked(true);
-        complexAction->setChecked(true);
-        compactAction->setChecked(true);
-        mProxyModel.setEmitterFilter({
-            EmitterFilterFlag::Simple,
-            EmitterFilterFlag::Complex,
-            EmitterFilterFlag::Compact
-        });
-    });
-
-    auto updateFilter = [simpleAction, complexAction, compactAction, this] {
-        EmitterFilter filter{};
-        if (simpleAction->isChecked()) { filter.enable(EmitterFilterFlag::Simple); }
-        if (complexAction->isChecked()) { filter.enable(EmitterFilterFlag::Complex); }
-        if (compactAction->isChecked()) { filter.enable(EmitterFilterFlag::Compact); }
-        mProxyModel.setEmitterFilter(filter);
-    };
-
-    connect(simpleAction, &QAction::toggled, this, updateFilter);
-    connect(complexAction, &QAction::toggled, this, updateFilter);
-    connect(compactAction, &QAction::toggled, this, updateFilter);
 }
 
 void PtclList::setupContextMenu() {

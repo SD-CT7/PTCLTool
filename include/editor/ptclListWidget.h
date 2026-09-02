@@ -3,10 +3,10 @@
 #include "util/bitflagUtil.h"
 #include "ptcl/ptclDocument.h"
 #include "editor/ptclList/ptclListRoles.h"
+#include "editor/ptclList/emitterFilterMenu.h"
 #include "editor/ptclList/emitterFilterProxyModel.h"
 
 #include <QLineEdit>
-#include <QMenu>
 #include <QShortcut>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
@@ -42,7 +42,6 @@ private slots:
 
 private:
     void populateList();
-    void setupFilterMenu();
     void setupContextMenu();
     void applyIcons();
 
@@ -89,7 +88,7 @@ private:
     QTreeView  mTreeView{};
     QLineEdit mSearchBox{};
     QToolButton mFilterButton{};
-    QMenu mFilterMenu{};
+    EmitterFilterMenu mFilterMenu{};
 
     QToolBar mToolBar{};
     QAction* mAddEmitterSetAction{nullptr};
