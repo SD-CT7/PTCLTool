@@ -6,6 +6,7 @@
 #include "editor/ptclList/emitterFilterMenu.h"
 #include "editor/ptclList/emitterFilterProxyModel.h"
 #include "editor/ptclList/emitterListController.h"
+#include "editor/ptclList/emitterListContextMenu.h"
 
 #include <QLineEdit>
 #include <QShortcut>
@@ -35,7 +36,8 @@ private slots:
     void filterList(const QString& text);
 
 private:
-    void setupContextMenu();
+    void showContextMenu(const QPoint& pos);
+
     void applyIcons();
 
     QIcon nodeIcon(NodeType type) const;
@@ -64,6 +66,7 @@ private:
 
     EmitterFilterProxyModel mProxyModel{};
     EmitterListController mListController{};
+    EmitterListContextMenu mContextMenu{this};
 
     QStandardItem* mContextItem{nullptr};
 

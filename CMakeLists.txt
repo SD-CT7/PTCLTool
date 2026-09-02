@@ -81,6 +81,7 @@ set(PROJECT_SOURCES
     src/editor/inspector/field/fieldSpinInspector.cpp
     src/editor/ptclList/emitterFilterMenu.cpp
     src/editor/ptclList/emitterFilterProxyModel.cpp
+    src/editor/ptclList/emitterListContextMenu.cpp
     src/editor/ptclList/emitterListController.cpp
     src/editor/texture/textureDetailsPanel.cpp
     src/editor/texture/textureFilterPopup.cpp
@@ -164,6 +165,7 @@ set(PROJECT_HEADERS
     include/editor/inspector/field/fieldSpinInspector.h
     include/editor/ptclList/emitterFilterMenu.h
     include/editor/ptclList/emitterFilterProxyModel.h
+    include/editor/ptclList/emitterListContextMenu.h
     include/editor/ptclList/emitterListController.h
     include/editor/ptclList/ptclListRoles.h
     include/editor/texture/textureDetailsPanel.h

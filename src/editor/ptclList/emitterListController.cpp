@@ -557,6 +557,52 @@ void EmitterListController::duplicateEmitter(QStandardItem* contextItem) {
 }
 
 
+bool EmitterListController::importEmitterSet(const QString& filePath) {
+    if (!mDocument || filePath.isEmpty()) {
+        return false;
+    }
+
+    if (!mDocument->importEmitterSet(filePath)) {
+        return false;
+    }
+
+    emit contentChanged();
+    return true;
+}
+
+
+bool EmitterListController::importEmitter(s32 setIndex, const QString& filePath) {
+    if (!mDocument || filePath.isEmpty()) {
+        return false;
+    }
+
+    if (!mDocument->importEmitter(setIndex, filePath)) {
+        return false;
+    }
+
+    emit contentChanged();
+    return true;
+}
+
+
+bool EmitterListController::exportEmitter(s32 setIndex, s32 emitterIndex, const QString& filePath) {
+    if (!mDocument || filePath.isEmpty()) {
+        return false;
+    }
+
+    return mDocument->exportEmitter(setIndex, emitterIndex, filePath);
+}
+
+
+bool EmitterListController::exportEmitterSet(s32 setIndex, const QString& filePath) {
+    if (!mDocument || filePath.isEmpty()) {
+        return false;
+    }
+
+    return mDocument->exportEmitterSet(setIndex, filePath);
+}
+
+
 // ========================================================================== //
 
 

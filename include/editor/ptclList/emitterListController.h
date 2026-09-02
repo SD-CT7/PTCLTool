@@ -39,6 +39,11 @@ public:
     void copyItem(QStandardItem* contextItem = nullptr);
     void pasteItem(QStandardItem* contextItem = nullptr);
 
+    bool importEmitterSet(const QString& filePath);
+    bool importEmitter(s32 setIndex, const QString& filePath);
+    bool exportEmitter(s32 setIndex, s32 emitterIndex, const QString& filePath);
+    bool exportEmitterSet(s32 setIndex, const QString& filePath);
+
 signals:
     void contentChanged();
 

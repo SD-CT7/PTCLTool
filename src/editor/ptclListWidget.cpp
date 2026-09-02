@@ -1,9 +1,5 @@
 #include "editor/ptclListWidget.h"
-#include "util/dialogUtil.h"
 #include "util/iconUtil.h"
-
-#include <QApplication>
-#include <QMessageBox>
 
 #include <functional>
 
@@ -51,6 +47,8 @@ PtclList::PtclList(QWidget* parent) :
     // Tree View
     mTreeView.setModel(&mProxyModel);
     mTreeView.setHeaderHidden(true);
+    mTreeView.setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(&mTreeView, &QTreeView::customContextMenuRequested, this, &PtclList::showContextMenu);
     connect(&mTreeView, &QTreeView::clicked, this, [this](const QModelIndex& proxyIndex) {
         const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
         QStandardItem* item = mListController.model()->itemFromIndex(sourceIndex);
@@ -112,7 +110,7 @@ PtclList::PtclList(QWidget* parent) :
         updateToolbarForSelection(mContextItem);
     });
 
-    setupContextMenu();
+    mContextMenu.setListController(&mListController);
 
     // Search Layout
     auto* searchLayout = new QHBoxLayout;
@@ -193,179 +191,31 @@ void PtclList::applyIcons() {
     }
 }
 
-void PtclList::setupContextMenu() {
-    mTreeView.setContextMenuPolicy(Qt::CustomContextMenu);
+void PtclList::showContextMenu(const QPoint& pos) {
+    if (!mDocument) {
+        return;
+    }
 
-    connect(&mTreeView, &QTreeView::customContextMenuRequested, this, [this](const QPoint& pos) {
-        QModelIndex proxyIndex = mTreeView.indexAt(pos);
-        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
-        QStandardItem* item = mListController.model()->itemFromIndex(sourceIndex);
+    QModelIndex proxyIndex = mTreeView.indexAt(pos);
+    QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+    QStandardItem* item = mListController.model()->itemFromIndex(sourceIndex);
+    if (!item) {
+        return;
+    }
 
-        QMenu menu(this);
-
-        menu.addAction("Add Emitter Set", this, [this, item] {
-            mListController.addEmitterSet(item);
-        });
-
-        menu.addAction("Import EmitterSet", this, [this] {
-            const QString filePath = DialogUtil::getOpenFileName(
-                this,
-                "Import EmitterSet",
-                SettingsUtil::PathType::ImportEmitterSet,
-                {FileKind::EmitterSet}
-            );
-
-            if (filePath.isEmpty()) {
-                return;
-            }
-
-            if (!mDocument->importEmitterSet(filePath)) {
-                QMessageBox::warning(this, "Import EmitterSet", "Failed to import emitter set. The source project textures could not be found.");
-            }
-        });
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
-                menu.addAction("Add Emitter", this, [this, item] {
-                    mListController.addEmitter(item);
-                });
-            }
-        }
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-            if (type == NodeType::EmitterSet) {
-                menu.addAction("Import Emitter", this, [this, item] {
-                    s32 setIndex = item->data(sRoleSetIdx).toInt();
-
-                    const QString filePath = DialogUtil::getOpenFileName(
-                        this,
-                        "Import Emitter",
-                        SettingsUtil::PathType::ImportEmitter,
-                        {FileKind::Emitter}
-                    );
-
-                    if (filePath.isEmpty()) {
-                        return;
-                    }
-
-                    if (!mDocument->importEmitter(setIndex, filePath)) {
-                        QMessageBox::warning(this, "Import Emitter", "Failed to import emitter. The source project textures could not be found.");
-                    }
-                });
-            }
-        }
-
-        menu.addSeparator();
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
-                bool canRemove = false;
-                if (type == NodeType::EmitterSet) {
-                    canRemove = mListController.model()->rowCount() > 1;
-                } else {
-                    const auto* setItem = item->parent();
-                    if (setItem) {
-                        canRemove = setItem->rowCount() > 1;
-                    }
-                }
-
-                auto* removeAct = menu.addAction("Remove", this, [this, item] {
-                    mListController.removeItem(item);
-                });
-                removeAct->setEnabled(canRemove);
-            }
-        }
-
-        menu.addSeparator();
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-
-            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
-                menu.addAction("Duplicate", this, [this, item] {
-                    mListController.duplicateItem(item);
-                });
-            }
-        }
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-            if (type == NodeType::Emitter) {
-                menu.addAction("Export Emitter", this, [this, item] {
-                    s32 setIndex = item->data(sRoleSetIdx).toInt();
-                    s32 emitterIndex = item->data(sRoleEmitterIdx).toInt();
-
-                    const auto* emitter = mDocument->emitter(setIndex, emitterIndex);
-                    if (!emitter) {
-                        return;
-                    }
-
-                    const QString defaultName = emitter->name() + ".pemt";
-                    const QString filePath = DialogUtil::getSaveFileName(
-                        this,
-                        "Export Emitter",
-                        SettingsUtil::PathType::ExportEmitter,
-                        {FileKind::Emitter},
-                        defaultName
-                    );
-
-                    if (filePath.isEmpty()) {
-                        return;
-                    }
-
-                    mDocument->exportEmitter(setIndex, emitterIndex, filePath);
-                });
-            } else if (type == NodeType::EmitterSet) {
-                menu.addAction("Export EmitterSet", this, [this, item] {
-                    s32 setIndex = item->data(sRoleSetIdx).toInt();
-
-                    const auto* emitterSet = mDocument->emitterSet(setIndex);
-                    if (!emitterSet) {
-                        return;
-                    }
-
-                    const QString defaultName = emitterSet->name() + ".pset";
-                    const QString filePath = DialogUtil::getSaveFileName(
-                        this,
-                        "Export EmitterSet",
-                        SettingsUtil::PathType::ExportEmitterSet,
-                        {FileKind::EmitterSet},
-                        defaultName
-                    );
-
-                    if (filePath.isEmpty()) {
-                        return;
-                    }
-
-                    mDocument->exportEmitterSet(setIndex, filePath);
-                });
-            }
-        }
-
-        if (item) {
-            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
-            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
-                menu.addAction("Copy", this, [this, item] {
-                    mListController.copyItem(item);
-                });
-            }
-        }
-
-        auto* pasteAct = menu.addAction("Paste", this, [this, item] {
-            mListController.pasteItem(item);
-        });
-        pasteAct->setEnabled(mListController.canPaste());
-
-        menu.exec(mTreeView.viewport()->mapToGlobal(pos));
-    });
+    mContextMenu.showForItem(
+        mTreeView.viewport()->mapToGlobal(pos),
+        item->data(sRoleSetIdx).toInt(),
+        item->data(sRoleEmitterIdx).toInt(),
+        static_cast<NodeType>(item->data(sRoleNodeType).toUInt()),
+        item
+    );
 }
 
 void PtclList::setDocument(Ptcl::Document* document) {
     mDocument = document;
     mListController.setDocument(document);
+    mContextMenu.setDocument(document);
 
     if (!document) {
         mSearchBox.clear();
