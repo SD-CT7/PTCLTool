@@ -159,6 +159,7 @@ set(PROJECT_HEADERS
     include/editor/inspector/field/fieldPosAddInspector.h
     include/editor/inspector/field/fieldRandomInspector.h
     include/editor/inspector/field/fieldSpinInspector.h
+    include/editor/ptclList/ptclListRoles.h
     include/editor/texture/textureDetailsPanel.h
     include/editor/texture/textureFilterPopup.h
     include/editor/texture/textureFilterProxyModel.h
