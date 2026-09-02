@@ -78,11 +78,11 @@ set(PROJECT_SOURCES
     src/editor/inspector/field/fieldPosAddInspector.cpp
     src/editor/inspector/field/fieldRandomInspector.cpp
     src/editor/inspector/field/fieldSpinInspector.cpp
-    src/editor/ptclList/emitterList.cpp
-    src/editor/ptclList/emitterFilterMenu.cpp
-    src/editor/ptclList/emitterFilterProxyModel.cpp
-    src/editor/ptclList/emitterListContextMenu.cpp
-    src/editor/ptclList/emitterListController.cpp
+    src/editor/emitterList/emitterList.cpp
+    src/editor/emitterList/emitterFilterMenu.cpp
+    src/editor/emitterList/emitterFilterProxyModel.cpp
+    src/editor/emitterList/emitterListContextMenu.cpp
+    src/editor/emitterList/emitterListController.cpp
     src/editor/texture/textureDetailsPanel.cpp
     src/editor/texture/textureFilterPopup.cpp
     src/editor/texture/textureFilterProxyModel.cpp
@@ -162,12 +162,12 @@ set(PROJECT_HEADERS
     include/editor/inspector/field/fieldPosAddInspector.h
     include/editor/inspector/field/fieldRandomInspector.h
     include/editor/inspector/field/fieldSpinInspector.h
-    include/editor/ptclList/emitterList.h
-    include/editor/ptclList/emitterFilterMenu.h
-    include/editor/ptclList/emitterFilterProxyModel.h
-    include/editor/ptclList/emitterListContextMenu.h
-    include/editor/ptclList/emitterListController.h
-    include/editor/ptclList/ptclListRoles.h
+    include/editor/emitterList/emitterList.h
+    include/editor/emitterList/emitterFilterMenu.h
+    include/editor/emitterList/emitterFilterProxyModel.h
+    include/editor/emitterList/emitterListContextMenu.h
+    include/editor/emitterList/emitterListController.h
+    include/editor/emitterList/emitterListTypes.h
     include/editor/texture/textureDetailsPanel.h
     include/editor/texture/textureFilterPopup.h
     include/editor/texture/textureFilterProxyModel.h

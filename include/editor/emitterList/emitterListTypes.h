@@ -38,4 +38,3 @@ static constexpr s32 sRoleEmitterType   = Qt::UserRole + 4;
 
 
 } //namespace PtclEditor
-

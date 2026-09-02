@@ -1,4 +1,4 @@
-#include "editor/ptclList/emitterFilterMenu.h"
+#include "editor/emitterList/emitterFilterMenu.h"
 
 
 namespace PtclEditor {

@@ -1,4 +1,4 @@
-#include "editor/ptclList/emitterListController.h"
+#include "editor/emitterList/emitterListController.h"
 
 #include <QMessageBox>
 

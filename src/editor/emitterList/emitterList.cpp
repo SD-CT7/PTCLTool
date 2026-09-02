@@ -1,4 +1,4 @@
-#include "editor/ptclList/emitterList.h"
+#include "editor/emitterList/emitterList.h"
 #include "util/iconUtil.h"
 
 #include <functional>

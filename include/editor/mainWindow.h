@@ -4,7 +4,7 @@
 #include "editor/components/panelSplitter.h"
 #include "ptcl/ptclDocument.h"
 #include "editor/inspector/inspectorPanel.h"
-#include "editor/ptclList/emitterList.h"
+#include "editor/emitterList/emitterList.h"
 #include "editor/texture/textureListWidget.h"
 
 #include <QGroupBox>

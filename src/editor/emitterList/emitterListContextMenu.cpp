@@ -1,5 +1,5 @@
-#include "editor/ptclList/emitterListContextMenu.h"
-#include "editor/ptclList/emitterListController.h"
+#include "editor/emitterList/emitterListContextMenu.h"
+#include "editor/emitterList/emitterListController.h"
 #include "util/dialogUtil.h"
 
 #include <QMessageBox>

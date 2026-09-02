@@ -2,11 +2,11 @@
 
 #include "util/bitflagUtil.h"
 #include "ptcl/ptclDocument.h"
-#include "editor/ptclList/ptclListRoles.h"
-#include "editor/ptclList/emitterFilterMenu.h"
-#include "editor/ptclList/emitterFilterProxyModel.h"
-#include "editor/ptclList/emitterListController.h"
-#include "editor/ptclList/emitterListContextMenu.h"
+#include "editor/emitterList/emitterListTypes.h"
+#include "editor/emitterList/emitterFilterMenu.h"
+#include "editor/emitterList/emitterFilterProxyModel.h"
+#include "editor/emitterList/emitterListController.h"
+#include "editor/emitterList/emitterListContextMenu.h"
 
 #include <QLineEdit>
 #include <QShortcut>

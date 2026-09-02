@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/ptclList/ptclListRoles.h"
+#include "editor/emitterList/emitterListTypes.h"
 #include "ptcl/ptclDocument.h"
 
 #include <QMenu>

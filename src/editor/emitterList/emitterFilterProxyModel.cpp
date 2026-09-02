@@ -1,4 +1,4 @@
-#include "editor/ptclList/emitterFilterProxyModel.h"
+#include "editor/emitterList/emitterFilterProxyModel.h"
 #include "ptcl/ptclEnum.h"
 
 #include <QApplication>
