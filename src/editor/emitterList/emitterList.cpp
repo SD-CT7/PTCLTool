@@ -107,6 +107,10 @@ EmitterList::EmitterList(QWidget* parent) :
         updateToolbarForSelection(contextItemForSelection());
     });
 
+    connect(mListController.model(), &QStandardItemModel::rowsInserted, this, [this] {
+        applyIcons();
+    });
+
     mContextMenu.setListController(&mListController);
 
     // Search Layout
@@ -231,8 +235,8 @@ void EmitterList::setDocument(Ptcl::Document* document) {
 
     mTreeView.expandAll();
     filterList(mSearchBox.text());
-    applyIcons();
     setEnabled(true);
+    applyIcons();
 }
 
 void EmitterList::setSelection(Ptcl::Selection* selection) {
