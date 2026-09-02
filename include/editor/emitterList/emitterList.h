@@ -45,6 +45,7 @@ private:
     void updateToolbarForSelection(const QStandardItem* item);
 
     QStandardItem* currentItem() const;
+    QStandardItem* contextItemForSelection() const;
 
 private:
     Ptcl::Document* mDocument{nullptr};
@@ -67,8 +68,6 @@ private:
     EmitterFilterProxyModel mProxyModel{};
     EmitterListController mListController{};
     EmitterListContextMenu mContextMenu{this};
-
-    QStandardItem* mContextItem{nullptr};
 
     QShortcut mCopyShortcut{QKeySequence::Copy, this};
     QShortcut mPasteShortcut{QKeySequence::Paste, this};

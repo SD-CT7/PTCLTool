@@ -52,7 +52,6 @@ EmitterList::EmitterList(QWidget* parent) :
     connect(&mTreeView, &QTreeView::clicked, this, [this](const QModelIndex& proxyIndex) {
         const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
         QStandardItem* item = mListController.model()->itemFromIndex(sourceIndex);
-        mContextItem = item;
 
         if (!item || !mSelection) {
             return;
@@ -107,7 +106,7 @@ EmitterList::EmitterList(QWidget* parent) :
 
     connect(&mListController, &EmitterListController::contentChanged, this, [this] {
         applyIcons();
-        updateToolbarForSelection(mContextItem);
+        updateToolbarForSelection(contextItemForSelection());
     });
 
     mContextMenu.setListController(&mListController);
@@ -132,6 +131,13 @@ QStandardItem* EmitterList::currentItem() const {
     const QModelIndex proxyIndex = mTreeView.currentIndex();
     const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
     return mListController.model()->itemFromIndex(sourceIndex);
+}
+
+QStandardItem* EmitterList::contextItemForSelection() const {
+    if (!mSelection) {
+        return nullptr;
+    }
+    return mListController.findItem(mSelection->emitterSetIndex(), mSelection->emitterIndex(), mSelection->type());
 }
 
 QIcon EmitterList::nodeIcon(NodeType type) const {
@@ -219,7 +225,6 @@ void EmitterList::setDocument(Ptcl::Document* document) {
 
     if (!document) {
         mSearchBox.clear();
-        mContextItem = nullptr;
         setEnabled(false);
         return;
     }
