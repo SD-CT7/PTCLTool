@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "editor/components/startframelist.h"
 
 #include <QLabel>

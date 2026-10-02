@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <array>
+#include <utility>
 #include <cmath>
 #include "qtcompat.h"
 #include "editor/components/colorGradientEditor.h"

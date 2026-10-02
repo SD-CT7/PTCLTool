@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include "qtcompat.h"
 #include "editor/components/frameSelectorPopup.h"

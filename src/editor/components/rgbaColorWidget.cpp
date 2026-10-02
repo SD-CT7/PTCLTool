@@ -197,10 +197,10 @@ void RGBAColorWidget::openColorDialog() {
         QColor newColor = colorDialog.selectedColor();
 
         Gfx::Color newColorFloat {
-            newColor.redF(),
-            newColor.greenF(),
-            newColor.blueF(),
-            newColor.alphaF()
+            static_cast<f32>(newColor.redF()),
+            static_cast<f32>(newColor.greenF()),
+            static_cast<f32>(newColor.blueF()),
+            static_cast<f32>(newColor.alphaF())
         };
         setColor(newColorFloat);
         emit colorChanged();

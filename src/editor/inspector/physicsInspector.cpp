@@ -1,3 +1,4 @@
+#include <limits>
 #include "editor/inspector/physicsInspector.h"
 
 #include <QFormLayout>

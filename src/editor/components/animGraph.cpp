@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "qtcompat.h"
 #include "editor/components/animGraph.h"
 

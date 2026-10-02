@@ -1,3 +1,4 @@
+#include <limits>
 #include "editor/inspector/child/childRotationScaleInspector.h"
 
 #include "math/util.h"

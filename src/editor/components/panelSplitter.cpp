@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "editor/components/panelSplitter.h"
 
 #include "editor/components/collapsiblePanel.h"
