@@ -56,11 +56,7 @@ inline QPointF eventPos(const QMouseEvent* e) {
 }
 
 inline QPointF eventPos(const QWheelEvent* e) {
-#ifdef PTCL_QT5
-    return e->posF();
-#else
-    return e->position();
-#endif
+    return e->position(); // available since Qt 5.14
 }
 
 // QFormLayout::setRowVisible only exists in Qt >= 6.4
