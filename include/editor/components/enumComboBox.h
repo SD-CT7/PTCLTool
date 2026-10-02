@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QComboBox>
+#include "qtcompat.h"
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 
@@ -35,15 +36,25 @@ public:
         QSortFilterProxyModel{parent} {}
 
     void setFilterFn(FilterFn filter) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
         beginFilterChange();
         mFilter = std::move(filter);
         endFilterChange();
+#else
+        mFilter = std::move(filter);
+        invalidateFilter();
+#endif
     }
 
     void clearFilterFn() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
         beginFilterChange();
         mFilter = nullptr;
         endFilterChange();
+#else
+        mFilter = nullptr;
+        invalidateFilter();
+#endif
     }
 
 protected:
@@ -53,7 +64,7 @@ protected:
         }
 
         const QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
-        const T value = index.data(Qt::UserRole).template value<T>();
+        const T value = QtCompat::enumFromVariant<T>(index.data(Qt::UserRole));
         return mFilter(value);
     }
 
@@ -80,7 +91,7 @@ public:
         mProxy->setSourceModel(mSourceModel);
         setModel(mProxy);
 
-        connect(this, &QComboBox::currentIndexChanged, this, [this](int) {
+        connect(this, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int) {
             updateToolTip();
         });
     }
@@ -103,7 +114,7 @@ public:
         for (const auto& option : options) {
             auto* item = new QStandardItem();
             item->setText(option.name);
-            item->setData(QVariant::fromValue(option.value), Qt::UserRole);
+            item->setData(QtCompat::enumToVariant(option.value), Qt::UserRole);
             item->setToolTip(option.description);
             item->setEditable(false);
             mSourceModel->appendRow(item);
@@ -121,13 +132,13 @@ public:
 
         const QModelIndex proxyIndex = mProxy->index(idx, 0);
         const QModelIndex sourceIndex = mProxy->mapToSource(proxyIndex);
-        return mSourceModel->data(sourceIndex, Qt::UserRole).value<T>();
+        return QtCompat::enumFromVariant<T>(mSourceModel->data(sourceIndex, Qt::UserRole));
     }
 
     void setCurrentEnum(T value) {
         for (int i = 0; i < mSourceModel->rowCount(); ++i) {
             const QModelIndex sourceIndex = mSourceModel->index(i, 0);
-            const T itemValue = mSourceModel->data(sourceIndex, Qt::UserRole).value<T>();
+            const T itemValue = QtCompat::enumFromVariant<T>(mSourceModel->data(sourceIndex, Qt::UserRole));
 
             if (itemValue == value) {
                 const QModelIndex proxyIndex = mProxy->mapFromSource(sourceIndex);

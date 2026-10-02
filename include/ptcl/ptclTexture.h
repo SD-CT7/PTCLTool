@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ptcl/ptclEnum.h"
-#include "ptcl/ptclSanitizeReport.h"
 
 #include <QImage>
 
@@ -34,10 +33,9 @@ public:
     TextureFormat textureFormat() const;
 
     u32 userCount() const;
+    u32 Id() const;
 
     bool isPlaceholder() const;
-
-    void validate(PtclSanitizeReport& report);
 
     void swapTexture(Texture& other);
 
@@ -57,6 +55,9 @@ private:
     TextureFormat mTextureFormat{};
     QImage mDecodedTexture{};
 
+    inline static u32 sNextId{0};
+
+    u32 mId{};
     bool mIsPlaceholder{false};
 
     UserCountCallback mUserCountCallBack{};
@@ -81,6 +82,9 @@ public:
 
     ~TextureHandle();
 
+    TextureHandle clone() const;
+
+    void invalidate();
     bool isValid() const;
 
     Texture* get() const;

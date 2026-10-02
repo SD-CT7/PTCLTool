@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include "typedefs.h"
 
 #include <iconv.h>

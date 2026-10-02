@@ -69,7 +69,7 @@ public:
         mGetter{std::move(getter)},
         mSetter{std::move(setter)},
         mNewValue{newValue},
-        mId{static_cast<s32>(qHash(mPropertyKey))}
+        mId{static_cast<s32>(::qHash(mPropertyKey))}
     {
         auto& emitter = getEmitter();
         mOldValue = mGetter(emitter);
@@ -154,7 +154,7 @@ public:
         mGetter{std::move(getter)},
         mSetter{std::move(setter)},
         mNewValue{newValue},
-        mId{static_cast<s32>(qHash(mPropertyKey))}
+        mId{static_cast<s32>(::qHash(mPropertyKey))}
     {
         auto& emitterSet = getEmitterSet();
         mOldValue = mGetter(emitterSet);
@@ -268,7 +268,7 @@ private:
     QString mOldName{};
     QString mNewName{};
 
-    const s32 mId{static_cast<s32>(qHash("RenameProject"))};
+    const s32 mId{static_cast<s32>(::qHash("RenameProject"))};
 };
 
 
@@ -311,115 +311,7 @@ private:
     s32 mEmitterIndex{0};
     std::unique_ptr<Emitter> mNewEmitter{};
 
-    const s32 mId{static_cast<s32>(qHash("AddEmitter"))};
-};
-
-
-// ========================================================================== //
-
-
-class ImportEmitterCommand final : public DocumentCommandBase {
-public:
-    ImportEmitterCommand(Document* doc, s32 setIndex, std::unique_ptr<Emitter> emitter, TextureList textures, const QString& label, QUndoCommand* parent = nullptr) :
-        DocumentCommandBase{doc, std::move(label), parent}, mSetIndex{setIndex}, mNewEmitter{std::move(emitter)}, mTextures{std::move(textures)} {
-    }
-
-    s32 id() const override {
-        return mId;
-    }
-
-    void undo() override {
-        for (s32 i = static_cast<s32>(mTextureIndices.size()) - 1; i >= 0; --i) {
-            auto removed = resource().removeTexture(mTextureIndices[i]);
-            mTextures[i] = std::move(removed);
-            notifyTextureRemoved(mTextureIndices[i]);
-        }
-        mTextureIndices.clear();
-
-        auto* set = emitterSet(mSetIndex);
-        mNewEmitter = set->removeEmitter(mEmitterIndex);
-        notifyEmitterRemoved(mSetIndex, mEmitterIndex);
-    }
-
-    void redo() override {
-        auto& textures = resource().textures();
-
-        mTextureIndices.clear();
-        mTextureIndices.reserve(mTextures.size());
-
-        for (s32 i = 0; i < static_cast<s32>(mTextures.size()); ++i) {
-            mTextureIndices.push_back(textures.size());
-            resource().insertTexture(textures.size(), std::move(mTextures[i]));
-            notifyTextureAdded(mTextureIndices.back());
-        }
-
-        auto* set = emitterSet(mSetIndex);
-        mEmitterIndex = set->emitterCount();
-        set->insertEmitter(mEmitterIndex, std::move(mNewEmitter));
-        notifyEmitterAdded(mSetIndex, mEmitterIndex);
-    }
-
-private:
-    s32 mSetIndex{};
-    s32 mEmitterIndex{0};
-    std::unique_ptr<Emitter> mNewEmitter{};
-    TextureList mTextures{};
-    std::vector<s32> mTextureIndices{};
-
-    const s32 mId{static_cast<s32>(qHash("ImportEmitter"))};
-};
-
-
-// ========================================================================== //
-
-
-class ImportEmitterSetCommand final : public DocumentCommandBase {
-public:
-    ImportEmitterSetCommand(Document* doc, std::unique_ptr<EmitterSet> emitterSet, TextureList textures, const QString& label, QUndoCommand* parent = nullptr) :
-        DocumentCommandBase{doc, std::move(label), parent}, mNewEmitterSet{std::move(emitterSet)}, mTextures{std::move(textures)} {
-    }
-
-    s32 id() const override {
-        return mId;
-    }
-
-    void undo() override {
-        for (s32 i = static_cast<s32>(mTextureIndices.size()) - 1; i >= 0; --i) {
-            auto removed = resource().removeTexture(mTextureIndices[i]);
-            mTextures[i] = std::move(removed);
-            notifyTextureRemoved(mTextureIndices[i]);
-        }
-        mTextureIndices.clear();
-
-        auto removed = resource().removeEmitterSet(mSetIndex);
-        mNewEmitterSet = std::move(removed);
-        notifyEmitterSetRemoved(mSetIndex);
-    }
-
-    void redo() override {
-        auto& textures = resource().textures();
-
-        mTextureIndices.clear();
-        mTextureIndices.reserve(mTextures.size());
-
-        for (s32 i = 0; i < static_cast<s32>(mTextures.size()); ++i) {
-            mTextureIndices.push_back(textures.size());
-            resource().insertTexture(textures.size(), std::move(mTextures[i]));
-            notifyTextureAdded(mTextureIndices.back());
-        }
-
-        mSetIndex = resource().emitterSetCount();
-        resource().insertEmitterSet(mSetIndex, std::move(mNewEmitterSet));
-        notifyEmitterSetAdded(mSetIndex);
-    }
-
-private:
-    s32 mSetIndex{0};
-    std::unique_ptr<EmitterSet> mNewEmitterSet{};
-    TextureList mTextures{};
-    std::vector<s32> mTextureIndices{};
-
-    const s32 mId{static_cast<s32>(qHash("ImportEmitterSet"))};
+    const s32 mId{static_cast<s32>(::qHash("AddEmitter"))};
 };
 
 
@@ -453,7 +345,7 @@ private:
     s32 mEmitterIndex{0};
     std::unique_ptr<Emitter> mRemovedEmitter{};
 
-    const s32 mId{static_cast<s32>(qHash("RemoveEmitter"))};
+    const s32 mId{static_cast<s32>(::qHash("RemoveEmitter"))};
 };
 
 
@@ -499,7 +391,7 @@ private:
     s32 mSetIndex{0};
     std::unique_ptr<EmitterSet> mNewEmitterSet{};
 
-    const s32 mId{static_cast<s32>(qHash("AddEmitterSet"))};
+    const s32 mId{static_cast<s32>(::qHash("AddEmitterSet"))};
 };
 
 
@@ -536,7 +428,7 @@ private:
     s32 mSetIndex{0};
     std::unique_ptr<EmitterSet> mRemovedEmitterSet{};
 
-    const s32 mId{static_cast<s32>(qHash("RemoveEmitterSet"))};
+    const s32 mId{static_cast<s32>(::qHash("RemoveEmitterSet"))};
 };
 
 
@@ -575,7 +467,7 @@ private:
     s32 mIndex{0};
     std::unique_ptr<Texture> mNewTexture{};
 
-    const s32 mId{static_cast<s32>(qHash("AddTexture"))};
+    const s32 mId{static_cast<s32>(::qHash("AddTexture"))};
 };
 
 
@@ -607,7 +499,7 @@ private:
     s32 mIndex{0};
     std::unique_ptr<Texture> mTexture{};
 
-    const s32 mId{static_cast<s32>(qHash("ReplaceTexture"))};
+    const s32 mId{static_cast<s32>(::qHash("ReplaceTexture"))};
 };
 
 
@@ -695,7 +587,7 @@ private:
     std::unique_ptr<Texture> mRemovedTexture{};
     std::vector<AffectedEmitter> mAffectedEmitters{};
 
-    const s32 mId{static_cast<s32>(qHash("RemoveTexture"))};
+    const s32 mId{static_cast<s32>(::qHash("RemoveTexture"))};
 };
 
 

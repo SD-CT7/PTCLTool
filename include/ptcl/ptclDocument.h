@@ -67,15 +67,6 @@ public:
     bool load(const QString& filePath);
     bool save(const QString& filePath);
 
-    bool exportProject(const QString& dirPath);
-    bool exportEmitter(s32 setIndex, s32 emitterIndex, const QString& filePath);
-
-    bool exportEmitterSet(s32 setIndex, const QString& filePath);
-
-    bool importEmitter(s32 setIndex, const QString& filePath);
-
-    bool importEmitterSet(const QString& filePath);
-
     const Emitter* emitter(s32 setIndex, s32 emitterIndex) const { return mData.emitter(setIndex, emitterIndex); }
     const EmitterSet* emitterSet(s32 index) const { return mData.emitterSet(index); }
 
@@ -156,11 +147,8 @@ signals:
     void textureRemoved(s32 index);
     void textureChanged(s32 index);
 
-    void importReportReady(const QString& filePath, const Ptcl::PtclSanitizeReport& report);
-
 private:
     PtclRes mData{};
-    PtclSanitizeReport mLastImportReport{};
     QString mFilePath{};
     QUndoStack mUndoStack{};
 };

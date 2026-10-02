@@ -18,11 +18,11 @@ namespace Ptcl {
 namespace detail {
 
 template<typename T>
-concept EnumValue = std::is_enum_v<T>;
-
-template<EnumValue T>
 constexpr s64 rawValue(T value) {
-    return static_cast<s64>(std::to_underlying(value));
+    if constexpr (std::is_enum_v<T>) {
+        return static_cast<s64>(std::to_underlying(value));
+    }
+    return static_cast<s64>(value);
 }
 
 } // namespace detail
@@ -31,7 +31,7 @@ constexpr s64 rawValue(T value) {
 // ========================================================================== //
 
 
-template<detail::EnumValue EnumType>
+template<typename EnumType>
 struct SanitizedValue {
     EnumType value{};
     bool wasInvalid{false};
@@ -42,13 +42,16 @@ struct SanitizedValue {
 // ========================================================================== //
 
 
-template<detail::EnumValue EnumType>
-SanitizedValue<EnumType> sanitizeEnum(EnumType raw, EnumType maxValue, EnumType fallback, const QString& fieldName) {
+template<typename EnumType, typename RawType>
+SanitizedValue<EnumType> sanitizeEnum(RawType raw, EnumType maxValue, EnumType fallback, const QString& fieldName) {
+    static_assert(std::is_enum_v<EnumType>, "sanitizeEnum requires an enum EnumType");
+    using UnderlyingType = std::underlying_type_t<EnumType>;
+
     const s64 value = detail::rawValue(raw);
     const s64 max = detail::rawValue(maxValue);
 
     if (value >= 0 && value <= max) {
-        return {static_cast<EnumType>(value), false, {}};
+        return {static_cast<EnumType>(static_cast<UnderlyingType>(value)), false, {}};
     }
 
     SanitizedValue<EnumType> result;
@@ -61,8 +64,8 @@ SanitizedValue<EnumType> sanitizeEnum(EnumType raw, EnumType maxValue, EnumType 
     return result;
 }
 
-template<detail::EnumValue EnumType>
-SanitizedValue<EnumType> sanitizeEnum(EnumType raw, EnumType maxEnum, QString fieldName) {
+template<typename EnumType, typename RawType>
+SanitizedValue<EnumType> sanitizeEnum(RawType raw, EnumType maxEnum, QString fieldName) {
     return sanitizeEnum(raw, maxEnum, maxEnum, fieldName);
 }
 
@@ -81,13 +84,13 @@ public:
 
     void add(QString issue) { mIssues.push_back(std::move(issue)); }
 
-    template<detail::EnumValue EnumType>
-    EnumType sanitize(EnumType raw, EnumType maxValue, QString fieldName) {
+    template<typename EnumType, typename RawType>
+    EnumType sanitize(RawType raw, EnumType maxValue, QString fieldName) {
         return sanitize(raw, maxValue, maxValue, fieldName);
     }
 
-    template<detail::EnumValue EnumType>
-    EnumType sanitize(EnumType raw, EnumType maxValue, EnumType fallback, QString fieldName) {
+    template<typename EnumType, typename RawType>
+    EnumType sanitize(RawType raw, EnumType maxValue, EnumType fallback, QString fieldName) {
         const auto result = sanitizeEnum(raw, maxValue, fallback, fieldName);
         if (!result.wasInvalid) {
             return result.value;

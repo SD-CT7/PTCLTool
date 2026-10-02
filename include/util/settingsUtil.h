@@ -14,13 +14,8 @@ namespace SettingsUtil {
 enum class PathType {
     Open,
     Save,
-    ImportTexture,
-    ExportTexture,
-    ExportProject,
-    ImportEmitter,
-    ImportEmitterSet,
-    ExportEmitter,
-    ExportEmitterSet,
+    Import,
+    Export,
 };
 
 

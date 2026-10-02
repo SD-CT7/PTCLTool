@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include "typedefs.h"
 
 #include <QString>
@@ -180,6 +181,13 @@ enum class TextureFormat : u16 {
     ETC1       = 0xC,
     ETC1_A4    = 0xD,
 };
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+// Qt5 has no qHash overload for enum classes (needed by QSet<TextureFormat>).
+inline uint qHash(TextureFormat format, uint seed = 0) noexcept {
+    return ::qHash(static_cast<u16>(format), seed);
+}
+#endif
 
 template<>
 inline QString toString<TextureFormat>(const TextureFormat& type) {

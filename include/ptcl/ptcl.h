@@ -156,7 +156,7 @@ private:
     std::vector<char> mNameTbl;
     std::vector<char> mTextureTbl;
 
-    std::unordered_map<Texture*, u32> mTextureOffsetMap{};
+    std::unordered_map<u32, u32> mTextureOffsetMap{};
 
     u32 mEmitterSetsCurOffset{0};
     u32 mEmitterTblCurOffset{0};
@@ -184,14 +184,10 @@ public:
     bool load(const QString& filePath);
     bool save(const QString& filePath);
 
-    bool exportProject(const QString& dirPath);
-
     const QString& name() const;
     void setName(const QString& name);
 
     const PtclSanitizeReport& sanitizeReport() const;
-
-    void validate(PtclSanitizeReport& report);
 
     EmitterSetList& getEmitterSets();
     const EmitterSetList& getEmitterSets() const;
@@ -220,8 +216,6 @@ public:
     s32 textureCount() const;
 
 private:
-    void buildFromBinary(PtclReadResult&& read);
-
     QString mName;
     TextureList mTextures;
     EmitterSetList mEmitterSets;

@@ -8,7 +8,6 @@
 
 #include "ptcl/ptclBinary.h"
 #include "ptcl/ptclEnum.h"
-#include "ptcl/ptclSanitizeReport.h"
 #include "ptcl/ptclSeed.h"
 #include "ptcl/ptclTexture.h"
 
@@ -78,9 +77,6 @@ public:
     Emitter(const Emitter&) = delete;
     Emitter& operator=(const Emitter&) = delete;
 
-    Emitter(Emitter&&) noexcept = default;
-    Emitter& operator=(Emitter&&) noexcept = default;
-
     std::unique_ptr<Emitter> clone() const;
 
     BitFlag<EmitterFlag>& flags();
@@ -88,10 +84,6 @@ public:
 
     void initFromBinary(const BinCommonEmitterData& emitterData);
     void initComplexFromBinary(const BinComplexEmitterData& emitterData);
-
-    void validate(PtclSanitizeReport& report);
-
-    void setTransformFromMatrices(const Math::Matrix34f& rt, const Math::Matrix34f& srt);
 
     // ----- Basic Properties -----
 

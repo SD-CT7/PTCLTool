@@ -52,17 +52,18 @@ public:
     }
 
     void setRange(T minValue, T maxValue) {
+        using DebugInt = std::conditional_t<std::is_signed_v<T>, qlonglong, qulonglong>;
         constexpr T typeMin = std::numeric_limits<T>::min();
         constexpr T typeMax = std::numeric_limits<T>::max();
 
         if (minValue < typeMin) {
-            qWarning() << "setRange: minValue" << minValue << "is less than type minimum" << typeMin << ". Clamping to type minimum.";
+            qWarning() << QStringLiteral("setRange: minValue") << static_cast<DebugInt>(minValue) << QStringLiteral("is less than type minimum") << static_cast<DebugInt>(typeMin) << QStringLiteral(". Clamping to type minimum.");
         }
         if (maxValue > typeMax) {
-            qWarning() << "setRange: maxValue" << maxValue << "is greater than type maximum" << typeMax << ". Clamping to type maximum.";
+            qWarning() << QStringLiteral("setRange: maxValue") << static_cast<DebugInt>(maxValue) << QStringLiteral("is greater than type maximum") << static_cast<DebugInt>(typeMax) << QStringLiteral(". Clamping to type maximum.");
         }
         if (minValue > maxValue) {
-            qWarning() << "setRange: minValue" << minValue << "is greater than maxValue" << maxValue << ". Adjusting maxValue to minValue.";
+            qWarning() << QStringLiteral("setRange: minValue") << static_cast<DebugInt>(minValue) << QStringLiteral("is greater than maxValue") << static_cast<DebugInt>(maxValue) << QStringLiteral(". Adjusting maxValue to minValue.");
         }
 
         mMin = std::clamp(minValue, typeMin, typeMax);

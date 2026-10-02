@@ -28,6 +28,9 @@
 class TextureImportDialog : public QDialog {
     Q_OBJECT
 public:
+    // Qt5's QFuture needs copyable results, so the unique_ptr is carried in a shared box.
+    using TextureResult = std::shared_ptr<std::unique_ptr<Ptcl::Texture>>;
+
     explicit TextureImportDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
     ~TextureImportDialog() override;
 
@@ -80,7 +83,7 @@ private:
 
     QImage mImage{};
     std::unique_ptr<Ptcl::Texture> mTexture{};
-    QFutureWatcher<std::unique_ptr<Ptcl::Texture>> mWatcher{};
+    QFutureWatcher<TextureResult> mWatcher{};
     LoadingSpinner mLoadingSpinner{};
     PtclEditor::TextureImportProcessor mProcessor{};
     QPushButton* mOkButton{nullptr};

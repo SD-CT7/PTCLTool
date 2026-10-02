@@ -4,7 +4,7 @@
 #include "editor/components/panelSplitter.h"
 #include "ptcl/ptclDocument.h"
 #include "editor/inspector/inspectorPanel.h"
-#include "editor/emitterList/emitterList.h"
+#include "editor/ptclListWidget.h"
 #include "editor/texture/textureListWidget.h"
 
 #include <QGroupBox>
@@ -44,13 +44,11 @@ private slots:
     void saveFile();
     void saveFileAs();
 
-    void exportProject();
-
     void openRecentFile();
 
 private:
     void updateRecentFileList();
-    void loadDocument(const QString& path);
+    void loadPtclRes(const QString& path);
 
     void setupUi();
     void setupMenus();
@@ -79,7 +77,6 @@ private:
     QAction mOpenAction{};
     QAction mSaveAction{};
     QAction mSaveAsAction{};
-    QAction mExportAction{};
     std::vector<QAction*> mRecentFileActions{};
 
     QAction* mUndoAction{nullptr};
@@ -102,7 +99,7 @@ private:
 
     QUndoView mUndoView{};
 
-    PtclEditor::EmitterList mEmitterList{};
+    PtclEditor::PtclList mPtclList{};
     PtclEditor::InspectorPanel mInspector{};
     PtclEditor::TextureListWidget mTextureWidget{};
 
