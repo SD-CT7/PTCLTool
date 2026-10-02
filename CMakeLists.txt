@@ -11,6 +11,11 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(WIN32)
+    # Target Windows 8.1 (0x0603) as the minimum supported version.
+    add_compile_definitions(_WIN32_WINNT=0x0603 WINVER=0x0603 NTDDI_VERSION=0x06030000)
+endif()
+
 if(MSVC)
     add_compile_options(/W4 /permissive-)
 else()
@@ -23,7 +28,8 @@ if(APPLE)
     add_compile_options(-include arm_acle.h)
 endif()
 
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Concurrent Svg)
+# Qt 6.x or Qt 5.15. Use Qt 5.15 for Windows 8.1 / 7 support (Qt 6 needs Windows 10+).
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Concurrent Svg)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Concurrent Svg)
 
 find_package(Iconv QUIET)
@@ -35,6 +41,7 @@ endif()
 set(PROJECT_SOURCES
     src/main.cpp
     src/editor/mainWindow.cpp
+    src/editor/ptclListWidget.cpp
     src/editor/components/animGraph.cpp
     src/editor/components/clickableLabel.cpp
     src/editor/components/colorChannelSlider.cpp
@@ -78,11 +85,6 @@ set(PROJECT_SOURCES
     src/editor/inspector/field/fieldPosAddInspector.cpp
     src/editor/inspector/field/fieldRandomInspector.cpp
     src/editor/inspector/field/fieldSpinInspector.cpp
-    src/editor/emitterList/emitterList.cpp
-    src/editor/emitterList/emitterFilterMenu.cpp
-    src/editor/emitterList/emitterFilterProxyModel.cpp
-    src/editor/emitterList/emitterListContextMenu.cpp
-    src/editor/emitterList/emitterListController.cpp
     src/editor/texture/textureDetailsPanel.cpp
     src/editor/texture/textureFilterPopup.cpp
     src/editor/texture/textureFilterProxyModel.cpp
@@ -101,11 +103,7 @@ set(PROJECT_SOURCES
     src/ptcl/ptclEmitterSet.cpp
     src/ptcl/ptclSeed.cpp
     src/ptcl/ptclTexture.cpp
-    src/ptcl/json/json.cpp
-    src/ptcl/json/jsonCommon.cpp
-    src/ptcl/json/jsonEmitter.cpp
-    src/ptcl/json/jsonEmitterSet.cpp
-    src/ptcl/json/jsonTexture.cpp
+    src/ptcl/ptclValidator.cpp
     src/util/imageUtil.cpp
     src/util/iconUtil.cpp
     src/util/nameValidator.cpp
@@ -116,6 +114,7 @@ set(PROJECT_SOURCES
 set(PROJECT_HEADERS
     include/typedefs.h
     include/editor/mainWindow.h
+    include/editor/ptclListWidget.h
     include/editor/components/animGraph.h
     include/editor/components/clickableLabel.h
     include/editor/components/colorChannelSlider.h
@@ -162,12 +161,6 @@ set(PROJECT_HEADERS
     include/editor/inspector/field/fieldPosAddInspector.h
     include/editor/inspector/field/fieldRandomInspector.h
     include/editor/inspector/field/fieldSpinInspector.h
-    include/editor/emitterList/emitterList.h
-    include/editor/emitterList/emitterFilterMenu.h
-    include/editor/emitterList/emitterFilterProxyModel.h
-    include/editor/emitterList/emitterListContextMenu.h
-    include/editor/emitterList/emitterListController.h
-    include/editor/emitterList/emitterListTypes.h
     include/editor/texture/textureDetailsPanel.h
     include/editor/texture/textureFilterPopup.h
     include/editor/texture/textureFilterProxyModel.h
@@ -193,13 +186,8 @@ set(PROJECT_HEADERS
     include/ptcl/ptclSanitizeReport.h
     include/ptcl/ptclSeed.h
     include/ptcl/ptclTexture.h
-    include/ptcl/json/json.h
-    include/ptcl/json/jsonCommon.h
-    include/ptcl/json/jsonEmitter.h
-    include/ptcl/json/jsonEmitterSet.h
-    include/ptcl/json/jsonTexture.h
+    include/ptcl/ptclValidator.h
     include/util/bitflagUtil.h
-    include/util/fileKind.h
     include/util/fileUtil.h
     include/util/iconUtil.h
     include/util/imageUtil.h
@@ -210,15 +198,16 @@ set(PROJECT_HEADERS
     include/util/stringUtil.h
 )
 
-qt_add_executable(PTCLTool
-    MANUAL_FINALIZATION
-    ${PROJECT_SOURCES}
-    ${PROJECT_HEADERS}
-)
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_add_executable(PTCLTool
+        MANUAL_FINALIZATION
+        ${PROJECT_SOURCES} ${PROJECT_HEADERS}
+    )
+else()
+    add_executable(PTCLTool ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+endif()
 
-qt_add_resources(PTCLTool "icons"
-    PREFIX "/"
-    FILES
+set(PTCL_ICON_FILES
         res/icons/add_emitter.svg
         res/icons/add_emitterset.svg
         res/icons/collision.svg
@@ -251,6 +240,20 @@ qt_add_resources(PTCLTool "icons"
         res/icons/transform.svg
         res/icons/wind.svg
 )
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_add_resources(PTCLTool "icons" PREFIX "/" FILES ${PTCL_ICON_FILES})
+else()
+    # Qt5: qt_add_resources(FILES ...) is unavailable, so generate a .qrc
+    set(PTCL_QRC "${CMAKE_CURRENT_BINARY_DIR}/icons.qrc")
+    set(PTCL_QRC_CONTENT "<RCC><qresource prefix=\"/\">\n")
+    foreach(f ${PTCL_ICON_FILES})
+        string(APPEND PTCL_QRC_CONTENT "<file alias=\"${f}\">${CMAKE_SOURCE_DIR}/${f}</file>\n")
+    endforeach()
+    string(APPEND PTCL_QRC_CONTENT "</qresource></RCC>\n")
+    file(WRITE "${PTCL_QRC}" "${PTCL_QRC_CONTENT}")
+    qt5_add_resources(PTCL_QRC_SRCS "${PTCL_QRC}")
+    target_sources(PTCLTool PRIVATE ${PTCL_QRC_SRCS})
+endif()
 
 if(WIN32)
     set(APP_ICON_RESOURCE "${CMAKE_CURRENT_BINARY_DIR}/app_icon.rc")
@@ -263,7 +266,9 @@ if(APPLE)
     set_target_properties(PTCLTool PROPERTIES
         MACOSX_BUNDLE_ICON_FILE app_icon.icns
     )
-    qt_add_resources(PTCLTool "mac_icons" PREFIX "/" FILES res/icons/app_icon.icns)
+    if(QT_VERSION_MAJOR EQUAL 6)
+        qt_add_resources(PTCLTool "mac_icons" PREFIX "/" FILES res/icons/app_icon.icns)
+    endif()
 endif()
 
 if(ENABLE_ASAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")

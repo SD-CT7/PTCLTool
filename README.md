@@ -18,9 +18,21 @@
 
 ## Requirements
 
-- Qt 6.x
+- Qt 6.x, or **Qt 5.15** (required for **Windows 8.1 / 7**; Qt 6 needs Windows 10+)
 - On Windows: **[win-iconv](https://github.com/win-iconv/win-iconv)**
 - On Linux/macOS: Standard `iconv` library (usually pre-installed)
+
+## Windows 8.1 build
+
+Windows 8.1 is supported by building against **Qt 5.15** (Qt 6 requires Windows 10 or newer):
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=<path-to-Qt5.15.2>/msvc2019_64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+cmake --build build --config Release
+windeployqt build\Release\PTCLTool.exe --release
+```
+
+A compiler with C++23 support is needed (Visual Studio 2022). `_WIN32_WINNT` is set to 0x0603 (Windows 8.1).
 
 ## Aknowledgements
 
