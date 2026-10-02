@@ -123,7 +123,7 @@ void ChildTextureInspector::setupConnections() {
     connect(&mChangeTextureButton, &QPushButton::clicked, this, &ChildTextureInspector::changeTexture);
 
     // Wrap T
-    connect(&mWrapTComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mWrapTComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto wrap = mWrapTComboBox.currentEnum();
         mTexturePreview.setWrapModes(wrap, mWrapSComboBox.currentEnum());
@@ -138,7 +138,7 @@ void ChildTextureInspector::setupConnections() {
     });
 
     // Wrap S
-    connect(&mWrapSComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mWrapSComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto wrap = mWrapSComboBox.currentEnum();
         mTexturePreview.setWrapModes(mWrapTComboBox.currentEnum(), wrap);
@@ -164,7 +164,7 @@ void ChildTextureInspector::setupConnections() {
     });
 
     // Filter
-    connect(&mFilterComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mFilterComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto filter = mFilterComboBox.currentEnum();
         mTexturePreview.setFilter(filter);

@@ -1,3 +1,5 @@
+#include <cmath>
+#include "qtcompat.h"
 #include "editor/components/thumbnailWidget.h"
 #include "util/paintUtil.h"
 
@@ -207,7 +209,7 @@ void ThumbnailWidget::wheelEvent(QWheelEvent* event) {
         return;
     }
 
-    QPointF cursor = event->position();
+    QPointF cursor = QtCompat::eventPos(event);
 
     f32 scaleX = static_cast<f32>(mTextureRect.width()) / static_cast<f32>(mPixmap.width());
     f32 scaleY = static_cast<f32>(mTextureRect.height()) / static_cast<f32>(mPixmap.height());

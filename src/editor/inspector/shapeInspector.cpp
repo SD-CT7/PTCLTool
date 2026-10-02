@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/inspector/shapeInspector.h"
 
 #include "math/util.h"
@@ -141,7 +142,7 @@ void ShapeInspector::setupUi() {
         }
     };
 
-    auto initialType = mVolumeTypeComboBox.currentData().value<Ptcl::VolumeType>();
+    auto initialType = QtCompat::enumFromVariant<Ptcl::VolumeType>(mVolumeTypeComboBox.currentData());
 
     for (auto& field : mVolumeFields) {
         auto* label = new QLabel(field.label(initialType), this);

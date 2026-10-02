@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/texturePreview.h"
 
 #include "util/paintUtil.h"

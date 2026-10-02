@@ -100,7 +100,7 @@ void CombinerInspector::setupConnections() {
         );
     });
 
-    connect(&mBlendFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mBlendFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mBlendFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Blend Function",
@@ -111,7 +111,7 @@ void CombinerInspector::setupConnections() {
         );
     });
 
-    connect(&mDepthFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mDepthFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mDepthFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Depth Function",
@@ -122,7 +122,7 @@ void CombinerInspector::setupConnections() {
         );
     });
 
-    connect(&mCombinerFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mCombinerFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mCombinerFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Combiner Function",

@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/combinerPreviewWidget.h"
 
 #include <QGridLayout>

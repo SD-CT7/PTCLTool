@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/wavePreviewWidget.h"
 
 #include <QPainter>

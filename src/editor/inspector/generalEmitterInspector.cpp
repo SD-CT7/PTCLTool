@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/inspector/generalEmitterInspector.h"
 #include "util/nameValidator.h"
 
@@ -192,7 +193,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Emitter Type
-    connect(&mTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         auto* stack = mDocument->undoStack();
         stack->beginMacro(formatHistoryLabel("Set Type"));
 
@@ -217,7 +218,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Random Seed Mode
-    connect(&mRandomSeedMode, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mRandomSeedMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         auto seed = mEmitter->randomSeed();
         auto mode = mRandomSeedMode.currentEnum();
 
@@ -251,7 +252,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Follow Type
-    connect(&mFollowTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mFollowTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mFollowTypeComboBox.currentEnum();
 
         setEmitterProperty(
@@ -264,14 +265,14 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Billboard Type
-    connect(&mBillboardTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mBillboardTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mBillboardTypeComboBox.currentEnum();
         setBillboardType(type, "Set Billboard Type", "BillboardType");
         updateStripeSectionVisibility();
     });
 
     // Shape Type    
-    connect(&mShapeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mShapeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mShapeComboBox.currentEnum();
 
         Ptcl::BillboardType newBillboard = Ptcl::BillboardType::Billboard;
@@ -287,7 +288,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe Type
-    connect(&mStripeTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mStripeTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         setEmitterProperty(
             "Set Stripe Type",
             "SetStripeType",
@@ -309,7 +310,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe Num History
-    connect(&mStripeNumHistSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mStripeNumHistSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Stripe History Size",
             "SetStripeNumHist",
@@ -320,7 +321,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe Start Alpha
-    connect(&mStripeStartAlphaSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mStripeStartAlphaSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Stripe Start Alpha",
             "SetStripeStartAlpha",
@@ -331,7 +332,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe End Alpha
-    connect(&mStripeEndAlphaSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mStripeEndAlphaSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Stripe End Alpha",
             "SetStripeEndAlpha",
@@ -354,7 +355,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe History Step
-    connect(&mStripeHistStepSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mStripeHistStepSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Stripe History Spacing",
             "SetStripeHistStep",
@@ -365,7 +366,7 @@ void GeneralEmitterInspector::setupConnections() {
     });
 
     // Stripe Direction Interpolation
-    connect(&mStripeDirInterpolateSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mStripeDirInterpolateSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Stripe Interpolation Ratio",
             "SetStripeDirInterp",
@@ -461,9 +462,9 @@ void GeneralEmitterInspector::populateProperties() {
 
 void GeneralEmitterInspector::updateShapeRowVisibility() {
     if (mEmitter->type() == Ptcl::EmitterType::Simple) {
-        mMainLayout->setRowVisible(&mShapeComboBox, false);
+        QtCompat::setRowVisible(mMainLayout, &mShapeComboBox, false);
     } else {
-        mMainLayout->setRowVisible(&mShapeComboBox, true);
+        QtCompat::setRowVisible(mMainLayout, &mShapeComboBox, true);
     }
 }
 

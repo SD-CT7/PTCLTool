@@ -2,12 +2,12 @@
 #include "editor/texture/textureImportDialog.h"
 #include "editor/texture/textureListRoles.h"
 
-#include "util/dialogUtil.h"
 #include "util/settingsUtil.h"
 #include "util/iconUtil.h"
 
 #include <QAbstractItemView>
 #include <QActionGroup>
+#include <QFileDialog>
 #include <QHeaderView>
 #include <QMenu>
 #include <QMessageBox>
@@ -37,7 +37,7 @@ TextureListWidget::TextureListWidget(QWidget *parent) :
     connect(&mDetailsPanel, &TextureDetailsPanel::replaceRequested, this, &TextureListWidget::replaceTexture);
     connect(&mDetailsPanel, &TextureDetailsPanel::deleteRequested, this, &TextureListWidget::deleteTexture);
 
-    connect(&mModel, &QAbstractItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const QList<s32>& roles) {
+    connect(&mModel, &QAbstractItemModel::dataChanged, this, [this](const QModelIndex& topLeft, const QModelIndex& bottomRight, const auto& roles) {
         Q_UNUSED(bottomRight);
         Q_UNUSED(roles);
 
@@ -357,7 +357,9 @@ void TextureListWidget::exportAll() {
         return;
     }
 
-    const QString dirPath = DialogUtil::getExistingDirectory(this, "Export textures", SettingsUtil::PathType::ExportTexture);
+    QString dirPath = QFileDialog::getExistingDirectory(this, "Export textures",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Export),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     if (dirPath.isEmpty()) {
         return;
@@ -368,6 +370,8 @@ void TextureListWidget::exportAll() {
         const auto& texture = textures[idx];
         texture->textureData().save(QString("%1/tex_%2.png").arg(dirPath).arg(idx));
     }
+
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Export, dirPath);
 }
 
 void TextureListWidget::importTexture() {
@@ -375,7 +379,9 @@ void TextureListWidget::importTexture() {
         return;
     }
 
-    const QString filePath = DialogUtil::getOpenFileName(this, "Import texture", SettingsUtil::PathType::ImportTexture, {FileKind::Image});
+    QString filePath = QFileDialog::getOpenFileName(this, "Import texture",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Import),
+        "*.png");
 
     if (filePath.isEmpty()) {
         return;
@@ -389,6 +395,8 @@ void TextureListWidget::importTexture() {
     if (dialog.exec() == QDialog::Accepted) {
         mDocument->addTexture(dialog.getTexture());
     }
+
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Import, filePath);
 }
 
 void TextureListWidget::exportTexture(Ptcl::Texture* texture) {
@@ -396,13 +404,21 @@ void TextureListWidget::exportTexture(Ptcl::Texture* texture) {
         return;
     }
 
-    const QString filePath = DialogUtil::getSaveFileName(this, "Export texture", SettingsUtil::PathType::ExportTexture, {FileKind::Image});
+    QString filePath = QFileDialog::getSaveFileName(this, "Export texture",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Export),
+        "*.png");
 
     if (filePath.isEmpty()) {
         return;
     }
 
+    if (!filePath.endsWith(".png")) {
+        filePath.append(".png");
+    }
+
     texture->textureData().save(filePath);
+
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Export, filePath);
 }
 
 void TextureListWidget::replaceTexture(const QModelIndex& index) {
@@ -412,7 +428,9 @@ void TextureListWidget::replaceTexture(const QModelIndex& index) {
 
     const s32 textureIndex = index.row();
 
-    const QString filePath = DialogUtil::getOpenFileName(this, "Import texture", SettingsUtil::PathType::ImportTexture, {FileKind::Image});
+    QString filePath = QFileDialog::getOpenFileName(this, "Import texture",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Import),
+        "*.png");
 
     if (filePath.isEmpty()) {
         return;
@@ -427,6 +445,8 @@ void TextureListWidget::replaceTexture(const QModelIndex& index) {
         auto newTexture = dialog.getTexture();
         mDocument->replaceTexture(textureIndex, std::move(newTexture), "Replace Texture");
     }
+
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Import, filePath);
 }
 
 void TextureListWidget::reEncodeTexture(const QModelIndex& index) {

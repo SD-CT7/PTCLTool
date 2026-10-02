@@ -229,7 +229,7 @@ TextureSelectDialog::TextureSelectDialog(const Ptcl::TextureList& textures, QWid
     mainLayout->addLayout(contentLayout, 1);
     mainLayout->addWidget(buttons);
 
-    connect(&mFilterCombo, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mFilterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         mModel.setTextures(&mTextures, mFilterCombo.currentData().toInt());
         clearSelection();

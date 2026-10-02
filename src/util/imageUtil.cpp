@@ -1,3 +1,4 @@
+#include <cstring>
 #include <Etc1.h>
 #include "util/imageUtil.h"
 

@@ -1,3 +1,4 @@
+#include <cmath>
 #include "util/paintUtil.h"
 
 #include <QRegion>

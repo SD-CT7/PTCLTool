@@ -63,7 +63,7 @@ void FieldRandomInspector::setupConnections() {
         );
     });
 
-    connect(&mBlankSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mBlankSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Random Interval",
             "SetFieldRandomBlank",

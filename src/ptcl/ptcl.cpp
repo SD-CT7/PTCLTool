@@ -1,6 +1,6 @@
 #include "ptcl/ptcl.h"
 #include "ptcl/ptclBinary.h"
-#include "ptcl/json/json.h"
+#include "ptcl/ptclValidator.h"
 #include "util/imageUtil.h"
 #include "util/stringUtil.h"
 
@@ -278,9 +278,9 @@ u32 PtclBinaryWriter::appendName(const QString& name) {
 }
 
 u32 PtclBinaryWriter::appendTexture(const TextureHandle& texture, u32& outSize) {
-    const auto texturePtr = texture.get();
+    const u32 id = texture->Id();
 
-    if (auto it = mTextureOffsetMap.find(texturePtr); it != mTextureOffsetMap.end()) {
+    if (auto it = mTextureOffsetMap.find(id); it != mTextureOffsetMap.end()) {
         outSize = texture->textureDataRaw().size();
         return it->second;
     }
@@ -289,7 +289,7 @@ u32 PtclBinaryWriter::appendTexture(const TextureHandle& texture, u32& outSize) 
     const u32 offset = mTextureTblCurOffset;
     const u32 size = static_cast<u32>(data.size());
 
-    mTextureOffsetMap.try_emplace(texturePtr, offset);
+    mTextureOffsetMap.try_emplace(id, offset);
     mTextureTbl.insert(mTextureTbl.end(), data.begin(), data.end());
 
     const u32 padding = (128 - (size % 128)) % 128;
@@ -472,139 +472,23 @@ void PtclBinaryWriter::write(const PtclRes& res) {
 // ========================================================================== //
 
 
-static Texture* buildBinaryTexture(PtclReadResult& read, s32 textureIndex, TextureList& textures, std::vector<Texture*>& cache, PtclSanitizeReport& report) {
-    if (textureIndex < 0 || textureIndex >= static_cast<s32>(read.textures.size())) {
-        return nullptr;
-    }
-
-    Texture*& cached = cache[textureIndex];
-    if (cached != nullptr) {
-        return cached;
-    }
-
-    RawTextureData& raw = read.textures[textureIndex];
-
-    if (raw.width == 0 || raw.height == 0 || raw.width > ImageUtil::maxTextureDimension() || raw.height > ImageUtil::maxTextureDimension()) {
-        throw std::runtime_error("Ptcl - Invalid texture dimensions.");
-    }
-
-    if (static_cast<u64>(raw.width) * raw.height * 4 > ImageUtil::maxTextureBytes()) {
-        throw std::runtime_error("Ptcl - Texture raster too large.");
-    }
-
-    const auto format = report.sanitize<TextureFormat>(raw.format, TextureFormat::ETC1_A4, TextureFormat::RGBA8888, "textureFormat");
-
-    if (raw.size < ImageUtil::textureDataMinBytes(static_cast<s32>(raw.width), static_cast<s32>(raw.height), format)) {
-        throw std::runtime_error("Ptcl - Texture data size too small for its format.");
-    }
-
-    auto texture = std::make_unique<Texture>(&raw.bytes, raw.width, raw.height, format);
-
-    textures.push_back(std::move(texture));
-
-    cached = textures.back().get();
-    return cached;
-}
-
-void PtclRes::buildFromBinary(PtclReadResult&& read) {
-    EmitterSetList emitterSets;
-    TextureList textures;
-    PtclSanitizeReport report;
-    std::vector<Texture*> textureCache(read.textures.size(), nullptr);
-
-    emitterSets.reserve(read.emitterSets.size());
-
-    for (s32 setIndex = 0; setIndex < static_cast<s32>(read.emitterSets.size()); ++setIndex) {
-        RawEmitterSetRecord& rawSet = read.emitterSets[setIndex];
-
-        auto set = std::make_unique<EmitterSet>();
-        set->setName(rawSet.name);
-        set->setUserData(rawSet.data.userData);
-        set->setLastUpdateDate(rawSet.data.lastUpdateDate);
-
-        for (s32 emitterIndex = 0; emitterIndex < static_cast<s32>(rawSet.emitters.size()); ++emitterIndex) {
-            RawEmitterRecord& rawEmitter = rawSet.emitters[emitterIndex];
-
-            if (rawEmitter.isNull) {
-                set->emitters().push_back(std::make_unique<Emitter>());
-                continue;
-            }
-
-            const QString context = QStringLiteral("EmitterSet %1 / Emitter %2").arg(setIndex).arg(emitterIndex);
-            report.setContext(context);
-
-            auto emitter = std::make_unique<Emitter>();
-            emitter->initFromBinary(rawEmitter.common);
-            emitter->setName(rawEmitter.name);
-            emitter->setTexture(buildBinaryTexture(read, rawEmitter.textureIndex, textures, textureCache, report));
-
-            if (rawEmitter.complex.has_value()) {
-                emitter->initComplexFromBinary(*rawEmitter.complex);
-
-                if (rawEmitter.child.has_value()) {
-                    emitter->initChild(*rawEmitter.child);
-                    emitter->setChildTexture(buildBinaryTexture(read, rawEmitter.childTextureIndex, textures, textureCache, report));
-                }
-
-                if (rawEmitter.fieldSpin.has_value()) {
-                    emitter->initFieldSpin(*rawEmitter.fieldSpin);
-                }
-                if (rawEmitter.fieldCollision.has_value()) {
-                    emitter->initFieldCollision(*rawEmitter.fieldCollision);
-                }
-                if (rawEmitter.fieldConvergence.has_value()) {
-                    emitter->initFieldConvergence(*rawEmitter.fieldConvergence);
-                }
-                if (rawEmitter.fieldRandom.has_value()) {
-                    emitter->initFieldRandom(*rawEmitter.fieldRandom);
-                }
-                if (rawEmitter.fieldMagnet.has_value()) {
-                    emitter->initFieldMagnet(*rawEmitter.fieldMagnet);
-                }
-                if (rawEmitter.fieldPosAdd.has_value()) {
-                    emitter->initFieldPosAdd(*rawEmitter.fieldPosAdd);
-                }
-                if (rawEmitter.fluctuation.has_value()) {
-                    emitter->initFluctuationData(*rawEmitter.fluctuation);
-                }
-                if (rawEmitter.stripe.has_value()) {
-                    emitter->initStripeData(*rawEmitter.stripe);
-                }
-            }
-
-            emitter->validate(report);
-
-            set->emitters().push_back(std::move(emitter));
-        }
-
-        emitterSets.push_back(std::move(set));
-    }
-
-    mEmitterSets = std::move(emitterSets);
-    mTextures = std::move(textures);
-    mSanitizeReport = std::move(report);
-}
-
-
-// ========================================================================== //
-
-
 bool PtclRes::load(const QString& filePath) {
     mSanitizeReport = PtclSanitizeReport{};
 
     try {
-        if (filePath.endsWith(".ptclproj")) {
-            mName.clear();
-            mEmitterSets.clear();
-            mTextures.clear();
-            return Ptcl::Json::importProject(filePath, *this, mSanitizeReport);
-        }
-
         PtclBinaryReader reader(filePath);
-        PtclReadResult result = reader.readAll();
 
-        mName = std::move(result.name);
-        buildFromBinary(std::move(result));
+        PtclReadResult result = reader.readAll();
+        const QString name = std::move(result.name);
+
+        PtclValidator validator;
+        PtclValidationResult validated = validator.validate(std::move(result));
+
+        mName = name;
+        mEmitterSets = std::move(validated.emitterSets);
+        mTextures = std::move(validated.textures);
+        mSanitizeReport = std::move(validated.report);
+
         return true;
     } catch (const std::exception& ex) {
         qWarning() << "Failed to load PTCL file" << filePath << ":" << ex.what();
@@ -615,40 +499,8 @@ bool PtclRes::load(const QString& filePath) {
     return false;
 }
 
-bool PtclRes::save(const QString& filePath) {
-    PtclBinaryWriter writer(filePath);
-    writer.write(*this);
-    return true;
-}
-
-bool PtclRes::exportProject(const QString& dirPath) {
-    return Ptcl::Json::exportProject(*this, dirPath);
-}
-
 const PtclSanitizeReport& PtclRes::sanitizeReport() const {
     return mSanitizeReport;
-}
-
-void PtclRes::validate(PtclSanitizeReport& report) {
-    for (s32 i = 0; i < static_cast<s32>(mTextures.size()); ++i) {
-        if (!mTextures[i]) {
-            continue;
-        }
-
-        report.setContext(QStringLiteral("Texture %1").arg(i));
-        mTextures[i]->validate(report);
-    }
-
-    for (s32 i = 0; i < static_cast<s32>(mEmitterSets.size()); ++i) {
-        if (!mEmitterSets[i]) {
-            continue;
-        }
-
-        report.setContext(QStringLiteral("EmitterSet %1").arg(i));
-        mEmitterSets[i]->validate(report);
-    }
-
-    report.setContext({});
 }
 
 s32 PtclRes::emitterSetCount() const {
@@ -675,6 +527,13 @@ u32 PtclRes::totalEmitterCount() const {
 s32 PtclRes::textureCount() const {
     return static_cast<s32>(mTextures.size());
 }
+
+bool PtclRes::save(const QString& filePath) {
+    PtclBinaryWriter writer(filePath);
+    writer.write(*this);
+    return true;
+}
+
 
 const QString& PtclRes::name() const {
     return mName;

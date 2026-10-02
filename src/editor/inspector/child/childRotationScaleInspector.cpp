@@ -170,7 +170,7 @@ void ChildRotationScaleInspector::setupConnections() {
         );
     });
 
-    connect(&mRotTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mRotTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mRotTypeComboBox.currentEnum();
         setEmitterProperty(
             "Set Child Rotation Type",
@@ -249,7 +249,7 @@ void ChildRotationScaleInspector::setupConnections() {
         updateGraphs();
     });
 
-    connect(&mInheritRateSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mInheritRateSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Child Scale Inherit Rate",
             "SetChildScaleInheritRate",
@@ -269,7 +269,7 @@ void ChildRotationScaleInspector::setupConnections() {
     });
 
     // Position connections
-    connect(&mInitPosRandSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mInitPosRandSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Child Initial Position Random",
             "SetChildInitPosRand",

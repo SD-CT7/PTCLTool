@@ -92,7 +92,7 @@ ChildCombinerInspector::ChildCombinerInspector(QWidget* parent) :
 }
 
 void ChildCombinerInspector::setupConnections() {
-    connect(&mBlendFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mBlendFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mBlendFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Child Blend Function",
@@ -103,7 +103,7 @@ void ChildCombinerInspector::setupConnections() {
         );
     });
 
-    connect(&mDepthFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mDepthFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mDepthFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Child Depth Function",
@@ -114,7 +114,7 @@ void ChildCombinerInspector::setupConnections() {
         );
     });
 
-    connect(&mCombinerFuncComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mCombinerFuncComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto func = mCombinerFuncComboBox.currentEnum();
         setEmitterProperty(
             "Set Child Combiner Function",

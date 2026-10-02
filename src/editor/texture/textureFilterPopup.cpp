@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/texture/textureFilterPopup.h"
 
 #include "ptcl/ptclEnum.h"

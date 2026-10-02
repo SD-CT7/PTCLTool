@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/texture/textureImportDialog.h"
 #include "util/imageUtil.h"
 #include "util/stringUtil.h"
@@ -220,14 +221,14 @@ void TextureImportDialog::setupPreviewWidgets() {
 }
 
 void TextureImportDialog::setupConnections() {
-    connect(&mFormatSelector, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateTextureFormat);
-    connect(&mETCQuality, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateTextureFormat);
-    connect(&mETCDither, &QCheckBox::checkStateChanged, this, &TextureImportDialog::updateTextureFormat);
+    connect(&mFormatSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateTextureFormat);
+    connect(&mETCQuality, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateTextureFormat);
+    connect(&mETCDither, PTCL_CHECKBOX_CHANGED, this, &TextureImportDialog::updateTextureFormat);
 
-    connect(&mAdjustMode, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateAdjustment);
-    connect(&mTargetWidth, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateAdjustment);
-    connect(&mTargetHeight, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateAdjustment);
-    connect(&mFilter, &QComboBox::currentIndexChanged, this, &TextureImportDialog::updateAdjustment);
+    connect(&mAdjustMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateAdjustment);
+    connect(&mTargetWidth, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateAdjustment);
+    connect(&mTargetHeight, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateAdjustment);
+    connect(&mFilter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &TextureImportDialog::updateAdjustment);
 
     connect(&mImportZoomIn, &QPushButton::clicked, &mImportPreview, &ThumbnailWidget::zoomIn);
     connect(&mImportZoomOut, &QPushButton::clicked, &mImportPreview, &ThumbnailWidget::zoomOut);
@@ -240,9 +241,11 @@ void TextureImportDialog::setupConnections() {
     connect(&mFormatZoomOut, &QPushButton::clicked, &mFormatPreview, &ThumbnailWidget::zoomOut);
     connect(&mFormatZoomReset, &QPushButton::clicked, &mFormatPreview, &ThumbnailWidget::resetView);
 
-    connect(&mWatcher, &QFutureWatcher<std::unique_ptr<Ptcl::Texture>>::finished, this, [this]() {
+    connect(&mWatcher, &QFutureWatcher<TextureImportDialog::TextureResult>::finished, this, [this]() {
         mLoadingSpinner.stop();
-        auto result = mWatcher.future().takeResult();
+        // Qt5's QFuture requires copyable results, so the unique_ptr travels in a shared box.
+        auto box = mWatcher.future().result();
+        std::unique_ptr<Ptcl::Texture> result = box ? std::move(*box) : nullptr;
         if (result) {
             mTexture = std::move(result);
             mFormatPreview.setPixmap(QPixmap::fromImage(mTexture->textureData()));
@@ -346,10 +349,10 @@ void TextureImportDialog::updateFormatPreview() {
 
     auto processorCopy = mProcessor;
 
-    QFuture<std::unique_ptr<Ptcl::Texture>> future = QtConcurrent::run(
+    QFuture<TextureResult> future = QtConcurrent::run(
         [processorCopy, &cancelFlag = mCanceled]() {
-            if (cancelFlag.load()) { return std::unique_ptr<Ptcl::Texture>(nullptr); }
-            return processorCopy.buildTexture(cancelFlag);
+            if (cancelFlag.load()) { return std::make_shared<std::unique_ptr<Ptcl::Texture>>(nullptr); }
+            return std::make_shared<std::unique_ptr<Ptcl::Texture>>(processorCopy.buildTexture(cancelFlag));
         });
 
     mWatcher.setFuture(future);

@@ -14,15 +14,10 @@ namespace /* Anonymous */ {
 
 QString pathKey(PathType type) {
     switch (type) {
-    case PathType::Open:             return "openPath";
-    case PathType::Save:             return "savePath";
-    case PathType::ImportTexture:    return "importTexPath";
-    case PathType::ExportTexture:    return "exportTexPath";
-    case PathType::ExportProject:    return "exportProjPath";
-    case PathType::ImportEmitter:    return "importEmitterPath";
-    case PathType::ImportEmitterSet: return "importEmitterSetPath";
-    case PathType::ExportEmitter:    return "exportEmitterPath";
-    case PathType::ExportEmitterSet: return "exportEmitterSetPath";
+    case PathType::Open:   return "openPath";
+    case PathType::Save:   return "savePath";
+    case PathType::Import: return "importPath";
+    case PathType::Export: return "exportPath";
     }
     return {};
 }

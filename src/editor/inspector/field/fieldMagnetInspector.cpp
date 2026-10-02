@@ -72,7 +72,7 @@ void FieldMagnetInspector::setupConnections() {
         setWidgetsEnabled(checked);
     });
 
-    connect(&mMagnetPowerSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mMagnetPowerSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Magnet Power",
             "SetFieldMagnetPower",

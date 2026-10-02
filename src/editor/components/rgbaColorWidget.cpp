@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/rgbaColorWidget.h"
 
 #include "util/paintUtil.h"

@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ptcl/ptclBinary.h"
 #include "ptcl/ptclEmitter.h"
 

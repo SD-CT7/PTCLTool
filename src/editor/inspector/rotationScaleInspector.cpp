@@ -135,7 +135,7 @@ bool RotationScaleInspector::eventFilter(QObject* obj, QEvent* event) {
 
 void RotationScaleInspector::setupConnections() {
     // Rotation connections
-    connect(&mRotTypeComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mRotTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mRotTypeComboBox.currentEnum();
 
         setEmitterProperty(
@@ -225,7 +225,7 @@ void RotationScaleInspector::setupConnections() {
         updateAnimPoint(pointIndex, point, &Math::Vector2f::getY);
     });
 
-    connect(&mScaleRandSpinbox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mScaleRandSpinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Scale Variation",
             "SetScaleRand",

@@ -65,7 +65,7 @@ StartFrameList::StartFrameList(QWidget* parent)
 
     mainLayout->addWidget(mListWidget, 0, Qt::AlignCenter);
 
-    connect(mCountSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(mCountSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setSlotCount(static_cast<u16>(value));
         emit slotCountChanged(static_cast<u16>(value));
     });

@@ -62,7 +62,7 @@ void FieldConvergenceInspector::setupConnections() {
         setWidgetsEnabled(checked);
     });
 
-    connect(&mTypeSpinBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mTypeSpinBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mTypeSpinBox.currentEnum();
         setEmitterProperty(
             "Set Convergence Source",
@@ -88,7 +88,7 @@ void FieldConvergenceInspector::setupConnections() {
         );
     });
 
-    connect(&mSpeedSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mSpeedSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         const auto currentPos = mEmitter->fieldConvergencePos();
         const Math::Vector3f pos3(currentPos.getX(), currentPos.getY(), static_cast<f32>(value));
         setEmitterProperty(

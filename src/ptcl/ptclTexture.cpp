@@ -12,7 +12,7 @@ namespace Ptcl {
 
 
 Texture::Texture(std::vector<u8>* encodedData, s32 width, s32 height, TextureFormat format) :
-    mEncodedData{std::move(*encodedData)}, mTextureFormat{format} {
+    mEncodedData{std::move(*encodedData)}, mTextureFormat{format}, mId{sNextId++} {
     mDecodedTexture = ImageUtil::picaTextureToQImage(mEncodedData, width, height, format);
 
     if (mDecodedTexture.isNull()) {
@@ -24,6 +24,7 @@ Texture::Texture(Texture&& other) noexcept :
     mEncodedData{std::move(other.mEncodedData)},
     mTextureFormat{other.mTextureFormat},
     mDecodedTexture{std::move(other.mDecodedTexture)},
+    mId{other.mId},
     mIsPlaceholder{other.mIsPlaceholder},
     mUserCountCallBack{std::move(other.mUserCountCallBack)},
     mUserCount{other.mUserCount} {
@@ -34,6 +35,7 @@ Texture& Texture::operator=(Texture&& other) noexcept {
         mEncodedData = std::move(other.mEncodedData);
         mTextureFormat = other.mTextureFormat;
         mDecodedTexture = std::move(other.mDecodedTexture);
+        mId = other.mId;
         mIsPlaceholder = other.mIsPlaceholder;
         mUserCountCallBack = std::move(other.mUserCountCallBack);
         mUserCount = other.mUserCount;
@@ -57,12 +59,12 @@ u32 Texture::userCount() const {
     return mUserCount;
 }
 
-bool Texture::isPlaceholder() const {
-    return mIsPlaceholder;
+u32 Texture::Id() const {
+    return mId;
 }
 
-void Texture::validate(PtclSanitizeReport& report) {
-    mTextureFormat = report.sanitize<TextureFormat>(mTextureFormat, TextureFormat::ETC1_A4, TextureFormat::RGBA8888, "textureFormat");
+bool Texture::isPlaceholder() const {
+    return mIsPlaceholder;
 }
 
 void Texture::swapTexture(Texture& other) {
@@ -159,6 +161,10 @@ TextureHandle& TextureHandle::operator=(TextureHandle&& other) noexcept {
         other.mTexturePtr = nullptr;
     }
     return *this;
+}
+
+void TextureHandle::invalidate() {
+    mTexturePtr = nullptr;
 }
 
 bool TextureHandle::isValid() const {

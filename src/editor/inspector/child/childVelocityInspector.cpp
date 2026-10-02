@@ -106,7 +106,7 @@ void ChildVelocityInspector::setupConnections() {
     });
 
     // Inherit Rate
-    connect(&mVelInheritSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mVelInheritSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Child Velocity Inherit Rate",
             "SetChildVelInheritRate",
@@ -117,7 +117,7 @@ void ChildVelocityInspector::setupConnections() {
     });
 
     // Figure Velocity
-    connect(&mFigureVelSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mFigureVelSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Child Emitter Velocity Inheritance",
             "SetChildFigureVel",
@@ -128,7 +128,7 @@ void ChildVelocityInspector::setupConnections() {
     });
 
     // Air Resistance
-    connect(&mAirResistSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mAirResistSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Child Velocity Damping",
             "SetChildAirResit",

@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/inspector/lifespanInspector.h"
 
 #include <QFormLayout>
@@ -104,7 +105,7 @@ LifespanInspector::LifespanInspector(QWidget* parent) :
 
 void LifespanInspector::setupConnections() {
     // Lifetime
-    connect(&mLifeSpanSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mLifeSpanSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Lifespan",
             "SetLifeSpan",
@@ -126,7 +127,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mLifeSpanRndSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mLifeSpanRndSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set LifeSpan Random",
             "SetLifeSpanRand",
@@ -137,7 +138,7 @@ void LifespanInspector::setupConnections() {
     });
 
     // Emission
-    connect(&mStartFrameSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mStartFrameSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Emission Start Frame",
             "SetEmitStartFrame",
@@ -147,7 +148,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mEndFrameSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mEndFrameSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Emission End Frame",
             "SetEmitEndFrame",
@@ -157,7 +158,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mInfiniteEmitCheckBox, &QCheckBox::checkStateChanged, this, [this](bool checked) {
+    connect(&mInfiniteEmitCheckBox, PTCL_CHECKBOX_CHANGED, this, [this](bool checked) {
         QSignalBlocker b1(mEndFrameSpinBox);
 
         const s32 endFrame = checked ? sEmitInfinite : 1;
@@ -171,7 +172,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mLifeStepSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mLifeStepSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Emission Interval",
             "SetEmitLifeStep",
@@ -181,7 +182,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mLifeStepRndSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mLifeStepRndSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Emission Random Interval",
             "SetEmitLifeStepRandom",
@@ -191,7 +192,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mEmitRateSpinBox, &QSpinBox::valueChanged, this, [this](u64 value) {
+    connect(&mEmitRateSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](u64 value) {
         setEmitterProperty(
             "Set Emission Rate",
             "SetEmitRate",
@@ -202,7 +203,7 @@ void LifespanInspector::setupConnections() {
     });
 
     // Termination
-    connect(&mIsStopEmitCheckBox, &QCheckBox::checkStateChanged, this, [this](bool checked) {
+    connect(&mIsStopEmitCheckBox, PTCL_CHECKBOX_CHANGED, this, [this](bool checked) {
         setEmitterProperty(
             "Toggle Stop Emission",
             "SetStopEmission",
@@ -212,7 +213,7 @@ void LifespanInspector::setupConnections() {
         );
     });
 
-    connect(&mAlphaAddInSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mAlphaAddInSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Fade Speed",
             "SetAlphaAddIn",

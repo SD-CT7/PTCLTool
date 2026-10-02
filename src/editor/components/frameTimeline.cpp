@@ -1,3 +1,5 @@
+#include <cmath>
+#include "qtcompat.h"
 #include "editor/components/frameSelectorPopup.h"
 #include "editor/components/frameTimeline.h"
 #include "editor/components/viewportScrollBar.h"
@@ -700,7 +702,7 @@ void FrameTimeline::drawInfinityMarker(QPainter& painter, s32 trackY, s32 trackH
 
 void FrameTimeline::wheelEvent(QWheelEvent* event) {
     if (event->modifiers() & Qt::ControlModifier) {
-        zoomAt(static_cast<s32>(event->position().x()), event->angleDelta().y() > 0);
+        zoomAt(static_cast<s32>(QtCompat::eventPos(event).x()), event->angleDelta().y() > 0);
     } else {
         const s32 delta = event->angleDelta().y() + event->angleDelta().x();
         setScrollOffset(mScrollOffset - delta);
@@ -993,7 +995,7 @@ void FrameTimeline::forEachVisibleTick(s32 visStart, s32 visEnd, Func&& callback
 
     s32 firstTick = std::max(0, static_cast<s32>((static_cast<f32>(visStart - sSidePadding)) / mPixelsPerTick));
 
-    const f32 lastTickF = std::ceilf(static_cast<f32>(visEnd - sSidePadding) / mPixelsPerTick) + 1.0f;
+    const f32 lastTickF = std::ceil(static_cast<f32>(visEnd - sSidePadding) / mPixelsPerTick) + 1.0f;
     const s32 lastTick = std::min(totalTicks + 1, static_cast<s32>(lastTickF));
 
     for (s32 t = firstTick; t < lastTick; ++t) {

@@ -1,5 +1,7 @@
+#include "qtcompat.h"
 #include "editor/texture/textureFilterProxyModel.h"
 #include "editor/texture/textureListRoles.h"
+#include "ptcl/ptclTexture.h"
 
 #include <algorithm>
 
@@ -18,9 +20,9 @@ void TextureFilterProxyModel::setEnabledFormats(const QSet<Ptcl::TextureFormat>&
         return;
     }
 
-    beginFilterChange();
+    PTCL_BEGIN_FILTER_CHANGE();
     mEnabledFormats = formats;
-    endFilterChange();
+    PTCL_END_FILTER_CHANGE();
 }
 
 void TextureFilterProxyModel::setShowUnusedOnly(bool show) {
@@ -28,9 +30,9 @@ void TextureFilterProxyModel::setShowUnusedOnly(bool show) {
         return;
     }
 
-    beginFilterChange();
+    PTCL_BEGIN_FILTER_CHANGE();
     mShowUnusedOnly = show;
-    endFilterChange();
+    PTCL_END_FILTER_CHANGE();
 }
 
 void TextureFilterProxyModel::setMaxSize(s32 maxSize) {
@@ -38,9 +40,9 @@ void TextureFilterProxyModel::setMaxSize(s32 maxSize) {
         return;
     }
 
-    beginFilterChange();
+    PTCL_BEGIN_FILTER_CHANGE();
     mMaxSize = maxSize;
-    endFilterChange();
+    PTCL_END_FILTER_CHANGE();
 }
 
 void TextureFilterProxyModel::setMaxFileSize(s64 maxFileSize) {
@@ -48,14 +50,14 @@ void TextureFilterProxyModel::setMaxFileSize(s64 maxFileSize) {
         return;
     }
 
-    beginFilterChange();
+    PTCL_BEGIN_FILTER_CHANGE();
     mMaxFileSize = maxFileSize;
-    endFilterChange();
+    PTCL_END_FILTER_CHANGE();
 }
 
 void TextureFilterProxyModel::refreshFilter() {
-    beginFilterChange();
-    endFilterChange();
+    PTCL_BEGIN_FILTER_CHANGE();
+    PTCL_END_FILTER_CHANGE();
 }
 
 bool TextureFilterProxyModel::filterAcceptsRow(s32 sourceRow, const QModelIndex& sourceParent) const {
@@ -108,7 +110,12 @@ bool TextureFilterProxyModel::lessThan(const QModelIndex& left, const QModelInde
 
     switch (sortColumn()) {
         case TextureColumn::ThumbnailColumn: {
-            return rowLeft < rowRight;
+            const auto* texLeft = static_cast<const Ptcl::Texture*>(source->data(left, TextureListRoles::TexturePtrRole).value<void*>());
+            const auto* texRight = static_cast<const Ptcl::Texture*>(source->data(right, TextureListRoles::TexturePtrRole).value<void*>());
+            if (texLeft && texRight && texLeft->Id() != texRight->Id()) {
+                return texLeft->Id() < texRight->Id();
+            }
+            break;
         }
         case TextureColumn::FormatColumn: {
             const auto fmt = intData(TextureListRoles::FormatRole);

@@ -159,23 +159,6 @@ void Emitter::rebuildCachedMatrices() {
     }
 }
 
-void Emitter::setTransformFromMatrices(const Math::Matrix34f& rt, const Math::Matrix34f& srt) {
-    mCachedTransformRT = rt;
-    mCachedTransformSRT = srt;
-
-    mTranslation = Math::Util::getTranslation(rt);
-
-    Math::Matrix33f rotMtx;
-    for (s32 r = 0; r < 3; ++r) {
-        for (s32 c = 0; c < 3; ++c) {
-            rotMtx(r, c) = rt(r, c);
-        }
-    }
-    mRotation = Math::Quaternion::fromMatrix(rotMtx);
-
-    mScale = Math::Util::getScale(srt);
-}
-
 const Math::Matrix34f& Emitter::transformRT() const {
     return mCachedTransformRT;
 }
@@ -465,100 +448,6 @@ void Emitter::initComplexFromBinary(const BinComplexEmitterData& emitterData) {
     mFieldFlags = emitterData.fieldFlag;
     mFluctuationFlags = emitterData.fluctuationFlag;
     mStripeFlags = emitterData.stripeFlag;
-}
-
-void Emitter::validate(PtclSanitizeReport& report) {
-    const QString baseContext = report.context();
-
-    // Ensure enums in range
-    mType          = report.sanitize<EmitterType>(mType, EmitterType::Compact, "type");
-    mFollowType    = report.sanitize<FollowType>(mFollowType, FollowType::PosOnly, "followType");
-    mBillboardType = report.sanitize<BillboardType>(mBillboardType, BillboardType::BillboardY, "billboardType");
-    mVolumeType    = report.sanitize<VolumeType>(mVolumeType, VolumeType::Rectangle, "volumeType");
-    mColorCalcType = report.sanitize<ColorCalcType>(mColorCalcType, ColorCalcType::Interpolate, "colorCalcType");
-    mRotType       = report.sanitize<RotType>(mRotType, RotType::RotXYZ, "rotType");
-    mBlendFunc     = report.sanitize<BlendFuncType>(mBlendFunc, BlendFuncType::Transparence, "blendFunc");
-    mDepthFunc     = report.sanitize<DepthFuncType>(mDepthFunc, DepthFuncType::Unk2, "depthFunc");
-    mCombinerFunc  = report.sanitize<ColorCombinerFuncType>(mCombinerFunc, ColorCombinerFuncType::CombinerConfig27, "combinerFunc");
-    mTextureWrapT  = report.sanitize<TextureWrap>(mTextureWrapT, TextureWrap::ClampToEdge, "textureWrapT");
-    mTextureWrapS  = report.sanitize<TextureWrap>(mTextureWrapS, TextureWrap::ClampToEdge, "textureWrapS");
-    mTextureFilter = report.sanitize<TextureFilter>(mTextureFilter, TextureFilter::Linear, "textureFilter");
-
-    // Simple emitters carry no stripe/child/field/fluctuation data
-    const bool isStripeBillboard = mBillboardType == BillboardType::Stripe || mBillboardType == BillboardType::ComplexStripe;
-
-    if (mType == EmitterType::Simple) {
-        if (isStripeBillboard) {
-            report.add(QStringLiteral("Emitter type 'Simple' cannot use a stripe billboard; billboard type fixed to 'Billboard'."));
-            mBillboardType = BillboardType::Billboard;
-        }
-        if (mChildFlags.isSet(ChildFlag::Enabled)) {
-            report.add(QStringLiteral("Emitter type 'Simple' cannot have a child emitter; child disabled."));
-            mChildFlags.clear(ChildFlag::Enabled);
-        }
-        if (mFieldFlags.any()) {
-            report.add(QStringLiteral("Emitter type 'Simple' cannot use field data; fields disabled."));
-            mFieldFlags.reset();
-        }
-        if (mFluctuationFlags.isSet(FluctuationFlag::Enabled)) {
-            report.add(QStringLiteral("Emitter type 'Simple' cannot use fluctuation data; fluctuation disabled."));
-            mFluctuationFlags.clear(FluctuationFlag::Enabled);
-        }
-        if (mStripeFlags.any()) {
-            report.add(QStringLiteral("Emitter type 'Simple' cannot use stripe data; stripe flags cleared."));
-            mStripeFlags.reset();
-        }
-    }
-
-    // Child data
-    if (mChildFlags.isSet(ChildFlag::Enabled)) {
-        report.setContext(baseContext.isEmpty()
-                              ? QStringLiteral("child")
-                              : baseContext + QStringLiteral(" [child]"));
-
-        // Ensure enums in range
-        mChild.billboardType = report.sanitize<BillboardType>(mChild.billboardType, BillboardType::BillboardY, "childBillboardType");
-        mChild.rotType       = report.sanitize<RotType>(mChild.rotType, RotType::RotXYZ, "childRotType");
-        mChild.textureWrapT  = report.sanitize<TextureWrap>(mChild.textureWrapT, TextureWrap::ClampToEdge, "childTextureWrapT");
-        mChild.textureWrapS  = report.sanitize<TextureWrap>(mChild.textureWrapS, TextureWrap::ClampToEdge, "childTextureWrapS");
-        mChild.textureFilter = report.sanitize<TextureFilter>(mChild.textureFilter, TextureFilter::Linear, "childTextureFilter");
-        mChild.blendFunc     = report.sanitize<BlendFuncType>(mChild.blendFunc, BlendFuncType::Transparence, "childBlendFunc");
-        mChild.depthFunc     = report.sanitize<DepthFuncType>(mChild.depthFunc, DepthFuncType::Unk2, "childDepthFunc");
-        mChild.combinerFunc  = report.sanitize<ColorCombinerFuncType>(mChild.combinerFunc, ColorCombinerFuncType::CombinerConfig27, "childCombinerFunc");
-
-        report.setContext(baseContext);
-    }
-
-    // Field data
-    if (mFieldFlags.isSet(FieldFlag::Spin)) {
-        mFieldSpin.spinAxis = report.sanitize<FieldSpinAxis>(mFieldSpin.spinAxis, FieldSpinAxis::AxisZ, "fieldSpinAxis");
-    }
-    if (mFieldFlags.isSet(FieldFlag::Collision)) {
-        mFieldCollision.collisionType = report.sanitize<FieldCollisionType>(mFieldCollision.collisionType, FieldCollisionType::Bounce, "fieldCollisionType");
-    }
-    if (mFieldFlags.isSet(FieldFlag::Convergence)) {
-        mFieldConvergence.convergenceType = report.sanitize<FieldConvergenceType>(mFieldConvergence.convergenceType, FieldConvergenceType::EmitterPos, "fieldConvergenceType");
-    }
-
-    // Stripe data
-    if (mType != EmitterType::Simple && isStripeBillboard) {
-        mStripeType = report.sanitize<StripeType>(mStripeType, StripeType::EmitterUpDown, "stripeType");
-    }
-
-    // Derived flags must match the billboard/follow types
-    const bool expectedPolygon = mBillboardType == BillboardType::PolygonXY || mBillboardType == BillboardType::PolygonXZ;
-    const bool expectedVelLook = mBillboardType == BillboardType::VelLook || mBillboardType == BillboardType::VelLookPolygon;
-    const bool expectedFollow  = mFollowType == FollowType::All;
-    const bool expectedEmitterBillboardMtx = expectedPolygon && expectedFollow;
-
-    if (mIsPolygon != expectedPolygon || mIsVelLook != expectedVelLook ||
-        mIsFollow != expectedFollow || mIsEmitterBillboardMtx != expectedEmitterBillboardMtx) {
-        report.add(QStringLiteral("Derived billboard/follow flags inconsistent with billboard/follow type."));
-        mIsPolygon = expectedPolygon;
-        mIsVelLook = expectedVelLook;
-        mIsFollow = expectedFollow;
-        mIsEmitterBillboardMtx = expectedEmitterBillboardMtx;
-    }
 }
 
 

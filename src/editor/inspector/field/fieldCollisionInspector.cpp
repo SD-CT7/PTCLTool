@@ -66,7 +66,7 @@ void FieldCollisionInspector::setupConnections() {
         setWidgetsEnabled(checked);
     });
 
-    connect(&mCollisionTypeSpinBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mCollisionTypeSpinBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mCollisionTypeSpinBox.currentEnum();
         setEmitterProperty(
             "Set Collision Type",
@@ -88,7 +88,7 @@ void FieldCollisionInspector::setupConnections() {
         );
     });
 
-    connect(&mCoefSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mCoefSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Collision Bounce Rate",
             "SetFieldCollisionCoef",
@@ -98,7 +98,7 @@ void FieldCollisionInspector::setupConnections() {
         );
     });
 
-    connect(&mCoordSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mCoordSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Collision Plane Coord",
             "SetFieldCollisionCoord",

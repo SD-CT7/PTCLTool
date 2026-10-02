@@ -104,7 +104,7 @@ void FluctuationInspector::setupConnections() {
         );
     });
 
-    connect(&mScaleSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mScaleSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Flux Amplitude",
             "SetFluxScale",
@@ -115,7 +115,7 @@ void FluctuationInspector::setupConnections() {
         mWavePreview.setAmplitude(static_cast<f32>(value));
     });
 
-    connect(&mFreqSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mFreqSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Flux Frequency",
             "SetFluxFreq",

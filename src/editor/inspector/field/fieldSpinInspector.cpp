@@ -56,7 +56,7 @@ void FieldSpinInspector::setupConnections() {
         setWidgetsEnabled(checked);
     });
 
-    connect(&mRotationSpinBox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mRotationSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         const s32 rotate = Math::Util::deg2idx(static_cast<f32>(value));
         setEmitterProperty(
             "Set Spin Rotation",
@@ -67,7 +67,7 @@ void FieldSpinInspector::setupConnections() {
         );
     });
 
-    connect(&mAxisSpinBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mAxisSpinBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto axis = mAxisSpinBox.currentEnum();
         setEmitterProperty(
             "Set Spin Axis",

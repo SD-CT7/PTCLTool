@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/inspector/child/childGeneralInspector.h"
 
 #include <QFormLayout>
@@ -35,8 +36,8 @@ ChildGeneralInspector::ChildGeneralInspector(QWidget* parent) :
     mParentFieldCheckBox.setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     mParentFieldCheckBox.setToolTip("When enabled, the parent's force fields affect the child emitter's particles.");
 
-    mDrawOrderComboBox.addItem("Above Parent", QVariant::fromValue(DrawOrder::AboveParent));
-    mDrawOrderComboBox.addItem("Below Parent", QVariant::fromValue(DrawOrder::BelowParent));
+    mDrawOrderComboBox.addItem("Above Parent", QtCompat::enumToVariant(DrawOrder::AboveParent));
+    mDrawOrderComboBox.addItem("Below Parent", QtCompat::enumToVariant(DrawOrder::BelowParent));
 
     auto* mainLayout = new QVBoxLayout(this);
 
@@ -107,7 +108,7 @@ void ChildGeneralInspector::setupConnections() {
     });
 
     // Billboard Type
-    connect(&mBillboardComboBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mBillboardComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mBillboardComboBox.currentEnum();
         setEmitterProperty(
             "Set Child Billboard Type",
@@ -119,8 +120,8 @@ void ChildGeneralInspector::setupConnections() {
     });
 
     // Draw Order
-    connect(&mDrawOrderComboBox, &QComboBox::currentIndexChanged, this, [this]() {
-        const auto order = mDrawOrderComboBox.currentData().value<DrawOrder>();
+    connect(&mDrawOrderComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+        const auto order = QtCompat::enumFromVariant<DrawOrder>(mDrawOrderComboBox.currentData());
         const bool isPreDraw = (order == DrawOrder::BelowParent);
         setEmitterProperty(
             "Set Child Draw Order",
@@ -145,7 +146,7 @@ void ChildGeneralInspector::populateProperties() {
     mParentFieldCheckBox.setChecked(mEmitter->isChildParentField());
 
     const auto drawOrder = mEmitter->isChildPreDraw() ? DrawOrder::BelowParent : DrawOrder::AboveParent;
-    const s32 drawIndex = mDrawOrderComboBox.findData(QVariant::fromValue(drawOrder));
+    const s32 drawIndex = mDrawOrderComboBox.findData(QtCompat::enumToVariant(drawOrder));
     mDrawOrderComboBox.setCurrentIndex(drawIndex);
 }
 

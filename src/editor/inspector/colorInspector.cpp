@@ -1,3 +1,5 @@
+#include <cmath>
+#include "qtcompat.h"
 #include "editor/inspector/colorInspector.h"
 
 #include <QFormLayout>
@@ -90,7 +92,7 @@ ColorInspector::ColorInspector(QWidget* parent) :
 
 void ColorInspector::setupConnections() {
     // Behavior Type
-    connect(&mColorBehavior, &EnumComboBox<Behavior>::currentIndexChanged, this, [this]() {
+    connect(&mColorBehavior, QOverload<int>::of(&EnumComboBox<Behavior>::currentIndexChanged), this, [this]() {
         handleBehaviorChanged(mColorBehavior.currentEnum());
     });
 
@@ -109,7 +111,7 @@ void ColorInspector::setupConnections() {
     });
 
     // Color Calc Type
-    connect(&mColorCalcTypeSpinBox, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(&mColorCalcTypeSpinBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
         const auto type = mColorCalcTypeSpinBox.currentEnum();
         setEmitterProperty(
             "Set Color Mode",
@@ -329,14 +331,14 @@ void ColorInspector::handleBehaviorChanged(Behavior behavior) {
     bool showRandom = (behavior == Behavior::Random);
     bool showAnim = (behavior == Behavior::Animation);
 
-    mMainLayout->setRowVisible(&mRandomColorAWidget, showRandom);
-    mMainLayout->setRowVisible(&mRandomColorBWidget, showRandom);
-    mMainLayout->setRowVisible(&mRandomColorCWidget, showRandom);
-    mMainLayout->setRowVisible(&mStartColorWidget, showAnim);
-    mMainLayout->setRowVisible(&mMidColorWidget, showAnim);
-    mMainLayout->setRowVisible(&mEndColorWidget, showAnim);
-    mMainLayout->setRowVisible(&mColorSections, showAnim);
-    mMainLayout->setRowVisible(&mColorNumRepeatSpinBox, showAnim);
+    QtCompat::setRowVisible(mMainLayout, &mRandomColorAWidget, showRandom);
+    QtCompat::setRowVisible(mMainLayout, &mRandomColorBWidget, showRandom);
+    QtCompat::setRowVisible(mMainLayout, &mRandomColorCWidget, showRandom);
+    QtCompat::setRowVisible(mMainLayout, &mStartColorWidget, showAnim);
+    QtCompat::setRowVisible(mMainLayout, &mMidColorWidget, showAnim);
+    QtCompat::setRowVisible(mMainLayout, &mEndColorWidget, showAnim);
+    QtCompat::setRowVisible(mMainLayout, &mColorSections, showAnim);
+    QtCompat::setRowVisible(mMainLayout, &mColorNumRepeatSpinBox, showAnim);
 
     mDocument->undoStack()->beginMacro(formatHistoryLabel(label));
 
@@ -362,31 +364,31 @@ void ColorInspector::handleBehaviorChanged(Behavior behavior) {
 void ColorInspector::updateVisibilityForCalcType(Ptcl::ColorCalcType type) {
     const bool isMultiColor = (type == Ptcl::ColorCalcType::Interpolate);
     const bool isSingleColor = (type == Ptcl::ColorCalcType::Pass1);
-    mMainLayout->setRowVisible(&mColorBehavior, isMultiColor);
-    mMainLayout->setRowVisible(&mSecondaryColorWidget, isSingleColor);
+    QtCompat::setRowVisible(mMainLayout, &mColorBehavior, isMultiColor);
+    QtCompat::setRowVisible(mMainLayout, &mSecondaryColorWidget, isSingleColor);
 
     if (isMultiColor) {
         auto behavior = mColorBehavior.currentEnum();
         bool showRandom = (behavior == Behavior::Random);
         bool showAnim = (behavior == Behavior::Animation);
 
-        mMainLayout->setRowVisible(&mRandomColorAWidget, showRandom);
-        mMainLayout->setRowVisible(&mRandomColorBWidget, showRandom);
-        mMainLayout->setRowVisible(&mRandomColorCWidget, showRandom);
-        mMainLayout->setRowVisible(&mStartColorWidget, showAnim);
-        mMainLayout->setRowVisible(&mMidColorWidget, showAnim);
-        mMainLayout->setRowVisible(&mEndColorWidget, showAnim);
-        mMainLayout->setRowVisible(&mColorSections, showAnim);
-        mMainLayout->setRowVisible(&mColorNumRepeatSpinBox, showAnim);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorAWidget, showRandom);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorBWidget, showRandom);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorCWidget, showRandom);
+        QtCompat::setRowVisible(mMainLayout, &mStartColorWidget, showAnim);
+        QtCompat::setRowVisible(mMainLayout, &mMidColorWidget, showAnim);
+        QtCompat::setRowVisible(mMainLayout, &mEndColorWidget, showAnim);
+        QtCompat::setRowVisible(mMainLayout, &mColorSections, showAnim);
+        QtCompat::setRowVisible(mMainLayout, &mColorNumRepeatSpinBox, showAnim);
     } else {
-        mMainLayout->setRowVisible(&mRandomColorAWidget, false);
-        mMainLayout->setRowVisible(&mRandomColorBWidget, false);
-        mMainLayout->setRowVisible(&mRandomColorCWidget, false);
-        mMainLayout->setRowVisible(&mStartColorWidget, false);
-        mMainLayout->setRowVisible(&mMidColorWidget, false);
-        mMainLayout->setRowVisible(&mEndColorWidget, false);
-        mMainLayout->setRowVisible(&mColorSections, false);
-        mMainLayout->setRowVisible(&mColorNumRepeatSpinBox, false);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorAWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorBWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mRandomColorCWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mStartColorWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mMidColorWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mEndColorWidget, false);
+        QtCompat::setRowVisible(mMainLayout, &mColorSections, false);
+        QtCompat::setRowVisible(mMainLayout, &mColorNumRepeatSpinBox, false);
     }
 }
 

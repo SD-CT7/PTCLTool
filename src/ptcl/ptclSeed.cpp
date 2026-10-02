@@ -1,7 +1,7 @@
 #include "ptcl/ptclSeed.h"
 #include "util/randomUtil.h"
 
-#include <QtLogging>
+#include <QDebug>
 
 
 // ========================================================================== //

@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/cropWidget.h"
 #include "util/imageUtil.h"
 

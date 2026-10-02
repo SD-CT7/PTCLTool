@@ -1,3 +1,5 @@
+#include <cmath>
+#include "qtcompat.h"
 #include "editor/components/colorGradientEditor.h"
 
 #include <QMouseEvent>
@@ -241,7 +243,7 @@ void ColorGradientEditor::mousePressEvent(QMouseEvent* event) {
     const f32 w = static_cast<f32>(width());
     const f32 innerWidth = w - 2 * sMargin;
 
-    const f32 x = static_cast<f32>(event->position().x());
+    const f32 x = static_cast<f32>(QtCompat::eventPos(event).x());
 
     std::array<f32, 3> positions = {
         sMargin + mInCompleted * innerWidth,
@@ -263,7 +265,7 @@ void ColorGradientEditor::mouseMoveEvent(QMouseEvent* event) {
     const f32 w = static_cast<f32>(width());
     const f32 innerWidth = w - 2 * sMargin;
 
-    const f32 x = static_cast<f32>(event->position().x());
+    const f32 x = static_cast<f32>(QtCompat::eventPos(event).x());
 
     if (mActiveHandle != -1) {
         f32 clampedX = std::clamp((x - sMargin) / innerWidth, 0.0f, 1.0f);

@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/viewportScrollBar.h"
 
 #include <QMouseEvent>

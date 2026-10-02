@@ -1,3 +1,5 @@
+#include <cmath>
+#include "qtcompat.h"
 #include "editor/inspector/textureInspector.h"
 
 #include "editor/texture/textureSelectDialog.h"
@@ -168,7 +170,7 @@ void TextureInspector::setupConnections() {
     connect(&mChangeTextureButton, &QPushButton::clicked, this, &TextureInspector::changeTexture);
 
     // Wrap T
-    connect(&mWrapTComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mWrapTComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto wrap = mWrapTComboBox.currentEnum();
         mTexturePreview.setWrapModes(wrap, mWrapSComboBox.currentEnum());
@@ -198,7 +200,7 @@ void TextureInspector::setupConnections() {
     });
 
     // Wrap S
-    connect(&mWrapSComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mWrapSComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto wrap = mWrapSComboBox.currentEnum();
         mTexturePreview.setWrapModes(mWrapTComboBox.currentEnum(), wrap);
@@ -239,7 +241,7 @@ void TextureInspector::setupConnections() {
     });
 
     // Filter
-    connect(&mFilterComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mFilterComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto filter = mFilterComboBox.currentEnum();
         mTexturePreview.setFilter(filter);
@@ -315,7 +317,7 @@ void TextureInspector::setupConnections() {
     });
 
 
-    connect(&mAnimModeComboBox, &QComboBox::currentIndexChanged, this, [this](s32 index) {
+    connect(&mAnimModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](s32 index) {
         Q_UNUSED(index);
         const auto mode = mAnimModeComboBox.currentEnum();
         mFrameTimeline.setAnimMode(mode);
@@ -687,8 +689,8 @@ QImage TextureInspector::applyUVRepetition(const QImage& image, f32 repeatX, f32
             bool mirrorX = (x / image.width()) % 2 != 0;
 
             QImage tile = image;
-            if (mirrorX) { tile = tile.flipped(Qt::Horizontal); }
-            if (mirrorY) { tile = tile.flipped(Qt::Vertical); }
+            if (mirrorX) { tile = QtCompat::flipped(tile, Qt::Horizontal); }
+            if (mirrorY) { tile = QtCompat::flipped(tile, Qt::Vertical); }
             p.drawImage(x, y, tile);
         }
     }

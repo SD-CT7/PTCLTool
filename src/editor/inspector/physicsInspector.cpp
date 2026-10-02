@@ -93,7 +93,7 @@ void PhysicsInspector::setupConnections() {
     });
 
     // Velocity
-    connect(&mFigureVelSpinbox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mFigureVelSpinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Emitter Velocity Inheritance",
             "SetFigureVelocity",
@@ -115,7 +115,7 @@ void PhysicsInspector::setupConnections() {
         );
     });
 
-    connect(&mInitVelSpinbox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mInitVelSpinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Initial Velocity",
             "SetInitialVelocity",
@@ -125,7 +125,7 @@ void PhysicsInspector::setupConnections() {
         );
     });
 
-    connect(&mVelRandomSpinbox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mVelRandomSpinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Initial Velocity Variation",
             "SetInitVelocityRand",
@@ -147,7 +147,7 @@ void PhysicsInspector::setupConnections() {
         );
     });
 
-    connect(&mAirResistanceSpinbox, &QDoubleSpinBox::valueChanged, this, [this](double value) {
+    connect(&mAirResistanceSpinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value) {
         setEmitterProperty(
             "Set Velocity Damping",
             "SetAirResistance",

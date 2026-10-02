@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/components/animGraph.h"
 
 #include <QApplication>
@@ -634,7 +635,7 @@ void AnimGraph::mouseReleaseEvent(QMouseEvent* event) {
 void AnimGraph::wheelEvent(QWheelEvent* event) {
     const auto rect = computeGraphRect();
 
-    const QPoint pos = event->position().toPoint();
+    const QPoint pos = QtCompat::eventPos(event).toPoint();
     if (pos.x() < rect.x || pos.x() >= rect.x + rect.w ||
         pos.y() < rect.y || pos.y() >= rect.y + rect.h) {
         return;

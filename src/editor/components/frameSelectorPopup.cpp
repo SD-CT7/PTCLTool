@@ -1,3 +1,4 @@
+#include <cmath>
 #include "editor/components/frameSelectorPopup.h"
 
 #include "util/paintUtil.h"

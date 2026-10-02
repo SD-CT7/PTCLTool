@@ -1,10 +1,5 @@
 #include "ptcl/ptclCommand.h"
 #include "ptcl/ptclDocument.h"
-#include "ptcl/json/json.h"
-#include "ptcl/json/jsonEmitter.h"
-#include "ptcl/json/jsonEmitterSet.h"
-#include "util/fileUtil.h"
-
 
 #include <utility>
 
@@ -33,18 +28,10 @@ Document::Document(QObject* parent) :
     QObject{parent} {}
 
 bool Document::load(const QString& filePath) {
+    mFilePath = filePath;
     mUndoStack.clear();
     mUndoStack.setClean();
-
-    if (!mData.load(filePath)) {
-        return false;
-    }
-
-    if (!FileUtil::hasExtention(filePath, FileKind::Project)) {
-        mFilePath = filePath;
-    }
-
-    return true;
+    return mData.load(filePath);
 }
 
 bool Document::save(const QString& filePath) {
@@ -54,64 +41,6 @@ bool Document::save(const QString& filePath) {
 
     mFilePath = filePath;
     mUndoStack.setClean();
-    return true;
-}
-
-bool Document::exportProject(const QString& dirPath) {
-    if (!mData.exportProject(dirPath)) {
-        return false;
-    }
-
-    return true;
-}
-
-bool Document::exportEmitter(s32 setIndex, s32 emitterIndex, const QString& filePath) {
-    const auto* emitter = mData.emitter(setIndex, emitterIndex);
-    if (!emitter) {
-        return false;
-    }
-
-    return Ptcl::Json::exportEmitter(*emitter, filePath);
-}
-
-bool Document::exportEmitterSet(s32 setIndex, const QString& filePath) {
-    const auto* emitterSet = mData.emitterSet(setIndex);
-    if (!emitterSet) {
-        return false;
-    }
-
-    return Ptcl::Json::exportEmitterSet(*emitterSet, filePath);
-}
-
-bool Document::importEmitter(s32 setIndex, const QString& filePath) {
-    if (setIndex < 0 || setIndex >= mData.emitterSetCount()) {
-        return false;
-    }
-
-    auto result = Ptcl::Json::importEmitter(filePath);
-    if (!result) {
-        return false;
-    }
-
-    mLastImportReport = std::move(result->report);
-    mUndoStack.push(new ImportEmitterCommand(this, setIndex, std::move(result->emitter), std::move(result->textures), "Import Emitter"));
-    if (mLastImportReport.hasIssues()) {
-        emit importReportReady(filePath, mLastImportReport);
-    }
-    return true;
-}
-
-bool Document::importEmitterSet(const QString& filePath) {
-    auto result = Ptcl::Json::importEmitterSet(filePath);
-    if (!result) {
-        return false;
-    }
-
-    mLastImportReport = std::move(result->report);
-    mUndoStack.push(new ImportEmitterSetCommand(this, std::move(result->emitterSet), std::move(result->textures), "Import EmitterSet"));
-    if (mLastImportReport.hasIssues()) {
-        emit importReportReady(filePath, mLastImportReport);
-    }
     return true;
 }
 

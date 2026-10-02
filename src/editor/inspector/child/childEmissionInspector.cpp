@@ -71,7 +71,7 @@ ChildEmissionInspector::ChildEmissionInspector(QWidget* parent) :
 
 void ChildEmissionInspector::setupConnections() {
     // Emission Rate
-    connect(&mEmitRateSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mEmitRateSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Child Emission Rate",
             "SetChildEmissionRate",
@@ -82,7 +82,7 @@ void ChildEmissionInspector::setupConnections() {
     });
 
     // Emission Timing
-    connect(&mEmitTimingSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mEmitTimingSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Child Emission Start Time",
             "SetChildEmissionStartTime",
@@ -93,7 +93,7 @@ void ChildEmissionInspector::setupConnections() {
     });
 
     // Lifespan
-    connect(&mLifeSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mLifeSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Set Child Lifespan",
             "SetChildLifespan",
@@ -116,7 +116,7 @@ void ChildEmissionInspector::setupConnections() {
     });
 
     // Emission Step
-    connect(&mEmitStepSpinBox, &QSpinBox::valueChanged, this, [this](s32 value) {
+    connect(&mEmitStepSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](s32 value) {
         setEmitterProperty(
             "Toggle Child Emission Interval",
             "ToggleChildEmitStep",

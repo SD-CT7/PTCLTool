@@ -1,3 +1,4 @@
+#include "qtcompat.h"
 #include "editor/texture/textureDetailsPanel.h"
 
 #include "ptcl/ptclDocument.h"
@@ -166,7 +167,7 @@ bool TextureDetailsPanel::eventFilter(QObject* watched, QEvent* event) {
     if (watched == mUsersList.viewport()) {
         if (event->type() == QEvent::MouseMove) {
             const auto* mouseEvent = static_cast<const QMouseEvent*>(event);
-            const bool overItem = mUsersList.itemAt(mouseEvent->position().toPoint()) != nullptr;
+            const bool overItem = mUsersList.itemAt(QtCompat::eventPos(mouseEvent).toPoint()) != nullptr;
             mUsersList.viewport()->setCursor(overItem ? Qt::PointingHandCursor : Qt::ArrowCursor);
         } else if (event->type() == QEvent::Leave) {
             mUsersList.viewport()->setCursor(Qt::ArrowCursor);
