@@ -1,6 +1,6 @@
+#include <algorithm>
 #include "editor/mainWindow.h"
 #include "editor/texture/textureImportDialog.h"
-#include "util/dialogUtil.h"
 #include "util/fileUtil.h"
 #include "util/settingsUtil.h"
 #include "util/stringUtil.h"
@@ -10,6 +10,7 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QFontMetrics>
 #include <QFormLayout>
@@ -37,7 +38,7 @@ void MainWindow::setupUi() {
 
     // Left Column: Ptcl List above History
     mLeftSplitter = new PanelSplitter(Qt::Vertical, this);
-    mLeftSplitter->addWidget(&mEmitterList);
+    mLeftSplitter->addWidget(&mPtclList);
     mLeftSplitter->addWidget(&mHistoryPanel);
     mLeftSplitter->setStretchFactor(0, 1);
     mLeftSplitter->setStretchFactor(1, 0);
@@ -63,9 +64,9 @@ void MainWindow::setupUi() {
     mTexturePanel.setContent(&mTextureWidget);
 
     // Ptcl List
-    mEmitterList.setEnabled(false);
-    mEmitterList.setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-    mEmitterList.setSelection(&mSelection);
+    mPtclList.setEnabled(false);
+    mPtclList.setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+    mPtclList.setSelection(&mSelection);
 
     // Inspector
     mInspector.setEnabled(false);
@@ -92,12 +93,11 @@ void MainWindow::setupUi() {
     updateWindowTitle();
 
     applyIcons();
-
     connect(&IconManager::instance(), &IconManager::iconsChanged, this, &MainWindow::applyIcons);
 }
 
 MainWindow::~MainWindow() {
-    mEmitterList.setDocument(nullptr);
+    mPtclList.setDocument(nullptr);
     mInspector.setDocument(nullptr);
     mTextureWidget.setDocument(nullptr);
 
@@ -123,11 +123,6 @@ void MainWindow::setupMenus() {
     mSaveAsAction.setShortcut(QKeySequence::SaveAs);
     mSaveAsAction.setEnabled(false);
     connect(&mSaveAsAction, &QAction::triggered, this, &MainWindow::saveFileAs);
-
-    // Export
-    mExportAction.setText("Export");
-    mExportAction.setEnabled(false);
-    connect(&mExportAction, &QAction::triggered, this, &MainWindow::exportProject);
 
     // Undo
     mUndoAction = new QAction("Undo", this);
@@ -156,8 +151,6 @@ void MainWindow::setupMenus() {
     mFileMenu.addAction(&mOpenAction);
     mFileMenu.addAction(&mSaveAction);
     mFileMenu.addAction(&mSaveAsAction);
-    mFileMenu.addSeparator();
-    mFileMenu.addAction(&mExportAction);
     mFileMenu.addSeparator();
     mFileMenu.addMenu(&mRecentFilesMenu);
 
@@ -200,7 +193,6 @@ void MainWindow::applyIcons() {
     IconUtil::setIcon(&mOpenAction, "open", this, iconSize);
     IconUtil::setIcon(&mSaveAction, "save", this, iconSize);
     IconUtil::setIcon(&mSaveAsAction, "save_as", this, iconSize);
-    IconUtil::setIcon(&mExportAction, "export", this, iconSize);
     IconUtil::setIcon(&mRecentFilesMenu, "recent", this, iconSize);
 }
 
@@ -287,17 +279,13 @@ void MainWindow::dropEvent(QDropEvent* event) {
         }
 
         switch (FileUtil::classifyFile(localPath)) {
-        case FileKind::Binary:
-        case FileKind::Project:
-            loadDocument(localPath);
+        case FileUtil::FileType::PtclBinary:
+            loadPtclRes(localPath);
             break;
-        case FileKind::Image:
+        case FileUtil::FileType::Image:
             dropImage(localPath);
             break;
-        case FileKind::Texture:
-        case FileKind::EmitterSet:
-        case FileKind::Emitter:
-        case FileKind::Unknown:
+        case FileUtil::FileType::Unknown:
             showOpenErrorDialog(localPath);
             break;
         }
@@ -305,18 +293,22 @@ void MainWindow::dropEvent(QDropEvent* event) {
 }
 
 void MainWindow::openFile() {
-    const auto filePath = DialogUtil::getOpenFileName(
-        this,
-        "Open File",
-        SettingsUtil::PathType::Open,
-        {FileKind::Binary, FileKind::Project}
-    );
+    QFileDialog openFileDialog(this, "Open File",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Open),
+        "*.ptcl");
 
-    if (filePath.isEmpty()) {
+    if (openFileDialog.exec() == QFileDialog::DialogCode::Rejected) {
         return;
     }
 
-    loadDocument(filePath);
+    const auto& files = openFileDialog.selectedFiles();
+
+    if (files.isEmpty()) {
+        return;
+    }
+
+    auto filePath = files.first();
+    loadPtclRes(filePath);
 }
 
 void MainWindow::saveFile() {
@@ -342,15 +334,16 @@ void MainWindow::saveFileAs() {
         return;
     }
 
-    const auto filePath = DialogUtil::getSaveFileName(
-        this,
-        "Save As",
-        SettingsUtil::PathType::Save,
-        {FileKind::Binary}
-    );
-
-    if (filePath.isEmpty()) {
+    QFileDialog dialog(this, "Save As",
+        SettingsUtil::dialogPath(SettingsUtil::PathType::Save),
+        "*.ptcl");
+    if(dialog.exec() == QFileDialog::DialogCode::Rejected) {
         return;
+    }
+
+    auto filePath = dialog.selectedFiles().constFirst();
+    if (!filePath.endsWith(".ptcl")) {
+        filePath += ".ptcl";
     }
 
     mDocument->save(filePath);
@@ -359,24 +352,9 @@ void MainWindow::saveFileAs() {
 
     mDocument->filePath() = filePath;
     SettingsUtil::addRecentFile(filePath);
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Save, filePath);
     updateRecentFileList();
     updateWindowTitle();
-}
-
-void MainWindow::exportProject() {
-    if (!mDocument) {
-        return;
-    }
-
-    const auto dir = DialogUtil::getExistingDirectory(this, "Export", SettingsUtil::PathType::ExportProject);
-
-    if (dir.isEmpty()) {
-        return;
-    }
-
-    mDocument->exportProject(dir);
-
-    statusBar()->showMessage("Project Exported", 2000);
 }
 
 void MainWindow::openRecentFile() {
@@ -395,21 +373,21 @@ void MainWindow::openRecentFile() {
         return;
     }
 
-    loadDocument(filePath);
+    loadPtclRes(filePath);
 }
 
 void MainWindow::updateRecentFileList() {
     auto recentFiles = SettingsUtil::recentFiles();
 
-    recentFiles.removeIf([](const QString& file) {
+    recentFiles.erase(std::remove_if(recentFiles.begin(), recentFiles.end(), [](const QString& file) {
         return !QFile::exists(file);
-    });
+    }), recentFiles.end());
 
     if (recentFiles != SettingsUtil::recentFiles()) {
         SettingsUtil::setRecentFiles(recentFiles);
     }
 
-    qsizetype numRecentFiles = qMin(recentFiles.size(), static_cast<qsizetype>(SettingsUtil::maxRecentFiles()));
+    qsizetype numRecentFiles = qMin(static_cast<qsizetype>(recentFiles.size()), static_cast<qsizetype>(SettingsUtil::maxRecentFiles()));
 
     for (qsizetype i = 0; i < numRecentFiles; ++i) {
         auto& action = mRecentFileActions[i];
@@ -431,18 +409,17 @@ void MainWindow::updateRecentFileList() {
     mRecentFilesMenu.setEnabled(numRecentFiles > 0);
 }
 
-void MainWindow::loadDocument(const QString& path) {
+void MainWindow::loadPtclRes(const QString& path) {
     if (!QFile::exists(path)) {
         showFileNotFoundDialog(path);
         return;
     }
 
-    mEmitterList.setDocument(nullptr);
+    mPtclList.setDocument(nullptr);
     mInspector.setDocument(nullptr);
     mTextureWidget.setDocument(nullptr);
 
     mSaveAsAction.setEnabled(false);
-    mExportAction.setEnabled(false);
     mSelection.set(-1, -1, Ptcl::Selection::Type::None);
 
     mDocument = std::make_unique<Ptcl::Document>();
@@ -471,10 +448,9 @@ void MainWindow::loadDocument(const QString& path) {
     SettingsUtil::setDialogPath(SettingsUtil::PathType::Open, path);
     updateRecentFileList();
 
-    mEmitterList.setDocument(mDocument.get());
+    mPtclList.setDocument(mDocument.get());
     mInspector.setDocument(mDocument.get());
     mTextureWidget.setDocument(mDocument.get());
-    connect(mDocument.get(), &Ptcl::Document::importReportReady, this, &MainWindow::showSanitizeWarningDialog);
 
     if (mDocument->emitterSetCount() != 0) {
         mSelection.set(0, 0, Ptcl::Selection::Type::EmitterSet);
@@ -484,7 +460,6 @@ void MainWindow::loadDocument(const QString& path) {
     updateWindowTitle();
 
     mSaveAsAction.setEnabled(true);
-    mExportAction.setEnabled(true);
 }
 
 void MainWindow::dropImage(const QString& filePath) {
@@ -502,7 +477,7 @@ void MainWindow::dropImage(const QString& filePath) {
         mDocument->addTexture(dialog.getTexture());
     }
 
-    SettingsUtil::setDialogPath(SettingsUtil::PathType::ImportTexture, filePath);
+    SettingsUtil::setDialogPath(SettingsUtil::PathType::Import, filePath);
 }
 
 void MainWindow::updateWindowTitle() {

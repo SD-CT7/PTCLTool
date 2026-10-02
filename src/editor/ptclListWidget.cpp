@@ -1,0 +1,1091 @@
+#include <cmath>
+#include "qtcompat.h"
+#include "editor/ptclListWidget.h"
+#include "util/iconUtil.h"
+
+#include <QApplication>
+#include <QMessageBox>
+
+
+namespace PtclEditor {
+
+
+// ========================================================================== //
+
+
+EmitterFilterProxyModel::EmitterFilterProxyModel(QObject* parent) :
+    QSortFilterProxyModel{parent} {}
+
+void EmitterFilterProxyModel::setEmitterFilter(const EmitterFilter& filter) {
+    if (mEmitterFilter == filter) {
+        return;
+    }
+
+    PTCL_BEGIN_FILTER_CHANGE();
+    mEmitterFilter = filter;
+    PTCL_END_FILTER_CHANGE();
+}
+
+bool EmitterFilterProxyModel::filterAcceptsRow(s32 sourceRow, const QModelIndex& sourceParent) const {
+    QModelIndex index = sourceModel()->index(sourceRow, 0, sourceParent);
+    if (!index.isValid()) {
+        return false;
+    }
+
+    // Type Filter
+    const auto nodeType = static_cast<NodeType>(sourceModel()->data(index, sRoleNodeType).toUInt());
+
+    if (nodeType == NodeType::Emitter) {
+        const auto emitterType = static_cast<Ptcl::EmitterType>(sourceModel()->data(index, sRoleEmitterType).toUInt());
+        bool allowed = false;
+
+        switch (emitterType) {
+        case Ptcl::EmitterType::Simple:
+            allowed = mEmitterFilter.isSet(EmitterFilterFlag::Simple);
+            break;
+        case Ptcl::EmitterType::Complex:
+            allowed = mEmitterFilter.isSet(EmitterFilterFlag::Complex);
+            break;
+        case Ptcl::EmitterType::Compact:
+            allowed = mEmitterFilter.isSet(EmitterFilterFlag::Compact);
+            break;
+        default:
+            break;
+        }
+
+        if (!allowed) {
+            return false;
+        }
+    }
+
+    // Search filter
+    const auto re = filterRegularExpression();
+
+    if (sourceModel()->data(index).toString().contains(re)) {
+        return true;
+    }
+
+    for (QModelIndex parent = sourceParent; parent.isValid(); parent = parent.parent()) {
+        if (sourceModel()->data(parent).toString().contains(re)) {
+            return true;
+        }
+    }
+
+    const s32 childCount = sourceModel()->rowCount(index);
+    for (s32 i = 0; i < childCount; ++i) {
+        if (filterAcceptsRow(i, index)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+QVariant EmitterFilterProxyModel::data(const QModelIndex& index, s32 role) const {
+    if (!index.isValid()) {
+        return {};
+    }
+
+    const auto srcIndex = mapToSource(index);
+    if (!srcIndex.isValid()) {
+        return QSortFilterProxyModel::data(index, role);
+    }
+
+    const auto type = static_cast<NodeType>(sourceModel()->data(srcIndex, sRoleNodeType).toUInt());
+
+    if (role == Qt::FontRole) {
+        if (type == NodeType::EmitterSet) {
+            auto font = QSortFilterProxyModel::data(index, role).value<QFont>();
+            font.setBold(true);
+            return font;
+        }
+    }
+
+    const bool isComplexNode = (
+        type == NodeType::ChildData ||
+        type == NodeType::Fluctuation ||
+        type == NodeType::Field
+    );
+
+    if (isComplexNode && role == Qt::ForegroundRole) {
+        const bool enabled = index.data(sRoleEnabled).toBool();
+        if (!enabled) {
+            auto color = QSortFilterProxyModel::data(index, role).value<QColor>();
+            if (!color.isValid()) {
+                color = QApplication::palette().color(QPalette::Disabled, QPalette::Text);
+            }
+            return color;
+        }
+    }
+    return QSortFilterProxyModel::data(index, role);
+}
+
+
+// ========================================================================== //
+
+
+PtclList::PtclList(QWidget* parent) :
+    QWidget{parent} {
+    // Toolbar
+    mToolBar.setIconSize(QSize(24, 24));
+    mToolBar.setToolButtonStyle(Qt::ToolButtonIconOnly);
+
+    mAddEmitterSetAction = mToolBar.addAction(QIcon(":/res/icons/add_emitterset.png"), "Add Emitter Set");
+    connect(mAddEmitterSetAction, &QAction::triggered, this, [this] { addEmitterSet(); });
+
+    mAddEmitterAction = mToolBar.addAction(QIcon(":/res/icons/add_emitter.png"), "Add Emitter");
+    connect(mAddEmitterAction, &QAction::triggered, this, [this] { addEmitter(); });
+
+    mToolBar.addSeparator();
+
+    mRemoveAction = mToolBar.addAction("Remove");
+    connect(mRemoveAction, &QAction::triggered, this, [this] { removeItem(); });
+
+    mToolBar.addSeparator();
+
+    mCopyAction = mToolBar.addAction(QIcon(":/res/icons/copy.png"), "Copy");
+    connect(mCopyAction, &QAction::triggered, this, [this] { copyItem(); });
+
+    mPasteAction = mToolBar.addAction(QIcon(":/res/icons/paste.png"), "Paste");
+    connect(mPasteAction, &QAction::triggered, this, [this] { pasteItem(); });
+
+    for (auto* act : { mAddEmitterSetAction, mAddEmitterAction, mRemoveAction, mCopyAction, mPasteAction }) {
+        act->setEnabled(false);
+    }
+
+    // Search Box
+    mSearchBox.setPlaceholderText("Search");
+    connect(&mSearchBox, &QLineEdit::textChanged, this, &PtclList::filterList);
+    connect(&mSearchBox, &QLineEdit::textChanged, this, [this] {
+        mTreeView.expandAll();
+    });
+
+    // Filter Button
+    mFilterButton.setPopupMode(QToolButton::InstantPopup);
+    mFilterButton.setMenu(&mFilterMenu);
+
+    setupFilterMenu();
+
+    setupContextMenu();
+
+    // Shortcuts
+    connect(&mCopyShortcut, &QShortcut::activated, this, [this] { copyItem(); });
+    connect(&mPasteShortcut, &QShortcut::activated, this, [this] { pasteItem(); });
+    connect(&mDuplicateShortcut, &QShortcut::activated, this, [this] { duplicateItem(); });
+
+    // Proxy Model
+    mProxyModel.setSourceModel(&mListModel);
+    mProxyModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
+    mProxyModel.setRecursiveFilteringEnabled(false);
+
+    // Tree View
+    mTreeView.setModel(&mProxyModel);
+    mTreeView.setHeaderHidden(true);
+    connect(&mTreeView, &QTreeView::clicked, this, [this](const QModelIndex& proxyIndex) {
+        const QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        QStandardItem* item = mListModel.itemFromIndex(sourceIndex);
+
+        if (!item || !mSelection || !mDocument) {
+            return;
+        }
+
+        updateToolbarForSelection(item);
+
+        const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+        const s32 setIndex = item->data(sRoleSetIdx).toInt();
+        const s32 emitterIndex = item->data(sRoleEmitterIdx).toInt();
+
+        switch (type) {
+        case NodeType::EmitterSet:
+            mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
+            break;
+        case NodeType::Emitter:
+            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::Emitter);
+            break;
+        case NodeType::ChildData:
+            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterChild);
+            break;
+        case NodeType::Fluctuation:
+            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterFlux);
+            break;
+        case NodeType::Field:
+            mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::EmitterField);
+            break;
+        default:
+            break;
+        }
+    });
+
+    // Search Layout
+    auto* searchLayout = new QHBoxLayout;
+    searchLayout->addWidget(&mSearchBox);
+    searchLayout->addWidget(&mFilterButton);
+
+    // Main layout
+    mMainLayout.addWidget(&mToolBar);
+    mMainLayout.addWidget(&mTreeView);
+    mMainLayout.addLayout(searchLayout);
+
+    setLayout(&mMainLayout);
+
+    applyIcons();
+    connect(&IconManager::instance(), &IconManager::iconsChanged, this, &PtclList::applyIcons);
+}
+
+QIcon PtclList::nodeIcon(NodeType type) const {
+    const char* name = nullptr;
+
+    switch (type) {
+    case NodeType::EmitterSet:
+        name = "emitterset";
+        break;
+    case NodeType::Emitter:
+        name = "emitter";
+        break;
+    default:
+        return {};
+    }
+
+    return IconManager::instance().icon(
+        QStringLiteral(":/res/icons/%1.svg").arg(QLatin1String(name)),
+        QPalette::Text,
+        this,
+        {24, 24},
+        IconRotation::None
+    );
+}
+
+void PtclList::applyIcons() {
+    constexpr QSize iconSize{24, 24};
+
+    IconUtil::setIcon(mAddEmitterSetAction, "add_emitterset", this, iconSize);
+    IconUtil::setIcon(mAddEmitterAction, "add_emitter", this, iconSize);
+    IconUtil::setIcon(mRemoveAction, "remove", this, iconSize);
+    IconUtil::setIcon(mCopyAction, "copy", this, iconSize);
+    IconUtil::setIcon(mPasteAction, "paste", this, iconSize);
+
+    IconUtil::setIcon(&mFilterButton, "filter", this, iconSize);
+
+    // Tree Nodes
+    const auto applyNodeIcon = [this](QStandardItem* item) {
+        const auto type = static_cast<NodeType>(
+            item->data(sRoleNodeType).toInt()
+            );
+
+        item->setIcon(nodeIcon(type));
+    };
+
+    std::function<void(QStandardItem*)> visit = [&](QStandardItem* item) {
+        applyNodeIcon(item);
+
+        for (s32 i = 0; i < item->rowCount(); ++i) {
+            visit(item->child(i));
+        }
+    };
+
+    for (s32 i = 0; i < mListModel.rowCount(); ++i) {
+        visit(mListModel.item(i));
+    }
+}
+
+void PtclList::setupFilterMenu() {
+    auto* simpleAction = mFilterMenu.addAction("Simple Emitters");
+    auto* complexAction = mFilterMenu.addAction("Complex Emitters");
+    auto* compactAction = mFilterMenu.addAction("Compact Emitters");
+    mFilterMenu.addSeparator();
+    auto* allAction = mFilterMenu.addAction("Show All");
+
+    for (auto* act : { simpleAction, complexAction, compactAction }) {
+        act->setCheckable(true);
+        act->setChecked(true);
+    }
+
+    connect(allAction, &QAction::triggered, this, [simpleAction, complexAction, compactAction, this] {
+        simpleAction->setChecked(true);
+        complexAction->setChecked(true);
+        compactAction->setChecked(true);
+        mProxyModel.setEmitterFilter({
+            EmitterFilterFlag::Simple,
+            EmitterFilterFlag::Complex,
+            EmitterFilterFlag::Compact
+        });
+    });
+
+    auto updateFilter = [simpleAction, complexAction, compactAction, this] {
+        EmitterFilter filter{};
+        if (simpleAction->isChecked()) { filter.enable(EmitterFilterFlag::Simple); }
+        if (complexAction->isChecked()) { filter.enable(EmitterFilterFlag::Complex); }
+        if (compactAction->isChecked()) { filter.enable(EmitterFilterFlag::Compact); }
+        mProxyModel.setEmitterFilter(filter);
+    };
+
+    connect(simpleAction, &QAction::toggled, this, updateFilter);
+    connect(complexAction, &QAction::toggled, this, updateFilter);
+    connect(compactAction, &QAction::toggled, this, updateFilter);
+}
+
+void PtclList::setupContextMenu() {
+    mTreeView.setContextMenuPolicy(Qt::CustomContextMenu);
+
+    connect(&mTreeView, &QTreeView::customContextMenuRequested, this, [this](const QPoint& pos) {
+        QModelIndex proxyIndex = mTreeView.indexAt(pos);
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        QStandardItem* item = mListModel.itemFromIndex(sourceIndex);
+
+        QMenu menu(this);
+
+        menu.addAction("Add Emitter Set", this, [this, item] {
+            addEmitterSet(item);
+        });
+
+        if (item) {
+            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
+                menu.addAction("Add Emitter", this, [this, item] {
+                    addEmitter(item);
+                });
+            }
+        }
+
+        menu.addSeparator();
+
+        if (item) {
+            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
+                bool canRemove = false;
+                if (type == NodeType::EmitterSet) {
+                    canRemove = mListModel.rowCount() > 1;
+                } else {
+                    const auto* setItem = item->parent();
+                    if (setItem) {
+                        canRemove = setItem->rowCount() > 1;
+                    }
+                }
+
+                auto* removeAct = menu.addAction("Remove", this, [this, item] {
+                    removeItem(item);
+                });
+                removeAct->setEnabled(canRemove);
+            }
+        }
+
+        menu.addSeparator();
+
+        if (item) {
+            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+            if (type == NodeType::EmitterSet) {
+                menu.addAction("Duplicate", this, [this, item] {
+                    duplicateEmitterSet(item);
+                });
+            } else if (type == NodeType::Emitter) {
+                menu.addAction("Duplicate", this, [this, item] {
+                    duplicateEmitter(item);
+                });
+            }
+        }
+
+        if (item) {
+            auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+            if (type == NodeType::EmitterSet || type == NodeType::Emitter) {
+                menu.addAction("Copy", this, [this, item] {
+                    copyItem(item);
+                });
+            }
+        }
+
+        auto* pasteAct = menu.addAction("Paste", this, [this, item] {
+            pasteItem(item);
+        });
+        pasteAct->setEnabled(mClipboardSet || mClipboardEmitter);
+
+        menu.exec(mTreeView.viewport()->mapToGlobal(pos));
+    });
+}
+
+void PtclList::setDocument(Ptcl::Document* document) {
+    if (mDocument) {
+        mDocument->disconnect(this);
+    }
+
+    mDocument = document;
+
+    if (!mDocument) {
+        mListModel.clear();
+        mSearchBox.clear();
+        mClipboardSet.reset();
+        mClipboardEmitter.reset();
+        setEnabled(false);
+        return;
+    }
+
+    connect(mDocument, &Ptcl::Document::emitterAdded, this, [this](s32 setIndex, s32 emitterIndex) {
+        QStandardItem* setItem = mListModel.item(setIndex);
+        if (!setItem) {
+            return;
+        }
+
+        insertEmitterNode(setItem, setIndex, emitterIndex);
+        reindexEmitters(setItem, setIndex);
+    });
+
+    connect(mDocument, &Ptcl::Document::emitterRemoved, this, [this](s32 setIndex, s32 emitterIndex) {
+        QStandardItem* setItem = mListModel.item(setIndex);
+        if (!setItem) {
+            return;
+        }
+
+        setItem->removeRow(emitterIndex);
+        reindexEmitters(setItem, setIndex);
+    });
+
+    connect(mDocument, &Ptcl::Document::emitterSetAdded, this, [this](s32 setIndex) {
+        insertEmitterSetNode(setIndex);
+        reindexEmitterSets();
+    });
+
+    connect(mDocument, &Ptcl::Document::emitterSetRemoved, this, [this](s32 setIndex) {
+        mListModel.removeRow(setIndex);
+        reindexEmitterSets();
+    });
+
+    connect(mDocument, &Ptcl::Document::emitterChanged, this, [this](s32 setIndex, s32 emitterIndex) {
+        updateEmitterName(setIndex, emitterIndex);
+        updateEmitter(setIndex, emitterIndex);
+    });
+    connect(mDocument, &Ptcl::Document::emitterSetChanged, this, &PtclList::updateEmitterSetName);
+
+    mListModel.clear();
+    populateList();
+    setEnabled(true);
+}
+
+void PtclList::setSelection(Ptcl::Selection* selection) {
+    mSelection = selection;
+
+    connect(selection, &Ptcl::Selection::selectionChanged, this, [this](s32 setIndex, s32 emitterIndex, Ptcl::Selection::Type type) {
+        if (!mDocument) {
+            return;
+        }
+
+        QSignalBlocker b(mTreeView.selectionModel());
+
+        const QStandardItem* item = findItem(setIndex, emitterIndex, type);
+        if (!item) {
+            mTreeView.clearSelection();
+            return;
+        }
+
+        for (const QStandardItem* ancestor = item; ancestor; ancestor = ancestor->parent()) {
+            const QModelIndex ancestorSource = mListModel.indexFromItem(ancestor);
+            const QModelIndex ancestorProxy = mProxyModel.mapFromSource(ancestorSource);
+            if (ancestorProxy.isValid()) {
+                mTreeView.expand(ancestorProxy);
+            }
+        }
+
+        const QModelIndex sourceIndex = mListModel.indexFromItem(item);
+        const QModelIndex proxyIndex = mProxyModel.mapFromSource(sourceIndex);
+
+        if (!proxyIndex.isValid()) {
+            mTreeView.clearSelection();
+            return;
+        }
+
+        auto* selectionModel = mTreeView.selectionModel();
+        selectionModel->setCurrentIndex(proxyIndex, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        mTreeView.scrollTo(proxyIndex);
+    });
+}
+
+void PtclList::populateList() {
+    if (!mDocument) {
+        return;
+    }
+
+    mListModel.clear();
+    const auto& sets = mDocument->emitterSets();
+    for (size_t setIndex = 0; setIndex < sets.size(); ++setIndex) {
+        insertEmitterSetNode(static_cast<s32>(setIndex));
+    }
+
+    mTreeView.expandAll();
+    filterList(mSearchBox.text());
+}
+
+void PtclList::insertEmitterSetNode(s32 setIndex) {
+    const auto* set = mDocument->emitterSet(setIndex);
+    if (!set) {
+        return;
+    }
+
+    QString setName = QString("%1: %2").arg(setIndex).arg(set->name());
+    auto* setItem = new QStandardItem(setName);
+    setItem->setEditable(false);
+    setItem->setData(static_cast<s32>(NodeType::EmitterSet), sRoleNodeType);
+    setItem->setData(setIndex, sRoleSetIdx);
+    setItem->setIcon(nodeIcon(NodeType::EmitterSet));
+
+    // Emitters
+    for (s32 emitterIndex = 0; emitterIndex < mDocument->emitterCount(setIndex); ++emitterIndex) {
+        insertEmitterNode(setItem, setIndex, emitterIndex);
+    }
+    mListModel.insertRow(setIndex, setItem);
+}
+
+void PtclList::insertEmitterNode(QStandardItem* setItem, s32 setIndex, s32 emitterIndex) {
+    const auto* emitter = mDocument->emitter(setIndex, emitterIndex);
+    if (!emitter) {
+        return;
+    }
+
+    QString emitterName = QString("%1: %2").arg(emitterIndex).arg(emitter->name());
+    auto* emitterItem = new QStandardItem(emitterName);
+    emitterItem->setEditable(false);
+    emitterItem->setData(static_cast<s32>(NodeType::Emitter), sRoleNodeType);
+    emitterItem->setData(setIndex, sRoleSetIdx);
+    emitterItem->setData(emitterIndex, sRoleEmitterIdx);
+    emitterItem->setData(static_cast<u32>(emitter->type()), sRoleEmitterType);
+    emitterItem->setIcon(nodeIcon(NodeType::Emitter));
+
+    // Complex Data
+    if (emitter->type() == Ptcl::EmitterType::Complex || emitter->type() == Ptcl::EmitterType::Compact) {
+        addComplexNodes(emitterItem, setIndex, emitterIndex);
+    }
+    setItem->insertRow(emitterIndex, emitterItem);
+}
+
+void PtclList::filterList(const QString& text) {
+    mProxyModel.setFilterFixedString(text);
+}
+
+void PtclList::selectNearestValidEmitter(s32 setIndex, s32 prefferedEmitter) {
+    if (!mDocument || !mSelection) {
+        return;
+    }
+
+    const auto& set = mDocument->emitterSet(setIndex);
+    const s32 count = set ? set->emitterCount() : 0;
+
+    if (count <= 0) {
+        mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
+        return;
+    }
+
+    const s32 clamped = std::clamp(prefferedEmitter, 0, count - 1);
+    mSelection->set(setIndex, clamped, Ptcl::Selection::Type::Emitter);
+}
+
+void PtclList::selectNearestValidEmitterSet(s32 prefferedEmitterSet) {
+    if (!mDocument || !mSelection) {
+        return;
+    }
+    const s32 count = mDocument->emitterSetCount();
+
+    if (count <= 0) {
+        return;
+    }
+
+    const s32 clamped = std::clamp(prefferedEmitterSet, 0, count - 1);
+    mSelection->set(clamped, 0, Ptcl::Selection::Type::EmitterSet);
+}
+
+void PtclList::addComplexNodes(QStandardItem* emitterItem, s32 setIndex, s32 emitterIndex) {
+    const auto& emitter = mDocument->emitter(setIndex, emitterIndex);
+
+    // ChildData
+    ensureComplexNode(
+        emitterItem,
+        NodeType::ChildData,
+        "ChildData",
+        setIndex,
+        emitterIndex,
+        emitter->isChildEnabled()
+    );
+
+    // Fluctuation
+    ensureComplexNode(
+        emitterItem,
+        NodeType::Fluctuation,
+        "Fluctuation",
+        setIndex,
+        emitterIndex,
+        emitter->isFluctuationEnabled()
+    );
+
+    // Field
+    ensureComplexNode(
+        emitterItem,
+        NodeType::Field,
+        "Field",
+        setIndex,
+        emitterIndex,
+        emitter->isFieldEnabled()
+    );
+}
+
+QStandardItem* PtclList::findItem(s32 setIndex, s32 emitterIndex, Ptcl::Selection::Type type) const {
+    auto* setItem = mListModel.item(setIndex);
+    if (!setItem) {
+        return nullptr;
+    }
+
+    if (type == Ptcl::Selection::Type::EmitterSet) {
+        return setItem;
+    }
+
+    auto* emitterItem = setItem->child(emitterIndex);
+    if (!emitterItem) {
+        return nullptr;
+    }
+
+    switch (type) {
+    case Ptcl::Selection::Type::Emitter:
+        return emitterItem;
+    case Ptcl::Selection::Type::EmitterChild:
+        return findChildByType(emitterItem, NodeType::ChildData);
+    case Ptcl::Selection::Type::EmitterFlux:
+        return findChildByType(emitterItem, NodeType::Fluctuation);
+    case Ptcl::Selection::Type::EmitterField:
+        return findChildByType(emitterItem, NodeType::Field);
+    default:
+        return nullptr;
+    }
+}
+
+QStandardItem* PtclList::findChildByType(QStandardItem* parent, NodeType type) {
+    if (!parent) {
+        return nullptr;
+    }
+
+    for (s32 i = 0; i < parent->rowCount(); ++i) {
+        auto* child = parent->child(i);
+        if (!child) {
+            continue;
+        }
+
+        if (child->data(sRoleNodeType).toUInt() == static_cast<u32>(type)) {
+            return child;
+        }
+    }
+    return nullptr;
+}
+
+void PtclList::ensureComplexNode(QStandardItem* emitterItem, NodeType type, const QString& label, s32 setIndex, s32 emitterIndex, bool enabled) {
+    auto* item = findChildByType(emitterItem, type);
+
+    if (!item) {
+        item = new QStandardItem(label);
+        item->setEditable(false);
+        item->setData(static_cast<s32>(type), sRoleNodeType);
+        item->setData(setIndex, sRoleSetIdx);
+        item->setData(emitterIndex, sRoleEmitterIdx);
+        emitterItem->appendRow(item);
+    }
+
+    item->setData(enabled, sRoleEnabled);
+}
+
+void PtclList::updateEmitter(s32 setIndex, s32 emitterIndex) {
+    const QStandardItem* setItem = mListModel.item(setIndex);
+    if (!setItem) {
+        return;
+    }
+
+    QStandardItem* emitterItem = setItem->child(emitterIndex);
+    if (!emitterItem) {
+        return;
+    }
+
+    const auto* emitter = mDocument->emitter(setIndex, emitterIndex);
+    if (!emitter) {
+        return;
+    }
+    emitterItem->setData(static_cast<u32>(emitter->type()), sRoleEmitterType);
+
+    if (emitter->type() == Ptcl::EmitterType::Simple) {
+        emitterItem->removeRows(0, emitterItem->rowCount());
+        return;
+    }
+
+    addComplexNodes(emitterItem, setIndex, emitterIndex);
+}
+
+void PtclList::updateEmitterName(s32 setIndex, s32 emitterIndex) {
+    const QStandardItem* setItem = mListModel.item(setIndex);
+    if (!setItem) {
+        return;
+    }
+
+    QStandardItem* emitterItem = setItem->child(emitterIndex);
+    if (!emitterItem) {
+        return;
+    }
+
+    const auto* emitter = mDocument->emitter(setIndex, emitterIndex);
+    if (!emitter) {
+        return;
+    }
+
+    QString emitterName = QString("%1: %2").arg(emitterIndex).arg(emitter->name());
+    emitterItem->setText(emitterName);
+}
+
+void PtclList::updateEmitterSetName(s32 setIndex) {
+    QStandardItem* setItem = mListModel.item(setIndex);
+    if (!setItem) {
+        return;
+    }
+
+    const auto* set = mDocument->emitterSet(setIndex);
+    if (!set) {
+        return;
+    }
+
+    QString setName = QString("%1: %2").arg(setIndex).arg(set->name());
+    setItem->setText(setName);
+}
+
+void PtclList::updateToolbarForSelection(const QStandardItem* item) {
+    mAddEmitterSetAction->setEnabled(true);
+    mAddEmitterAction->setEnabled(false);
+    mRemoveAction->setEnabled(false);
+    mCopyAction->setEnabled(false);
+    mPasteAction->setEnabled(false);
+
+    if (!item) {
+        return;
+    }
+
+    const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+    mPasteAction->setEnabled(mClipboardSet || mClipboardEmitter);
+
+    switch (type) {
+    case NodeType::EmitterSet: {
+        mAddEmitterAction->setEnabled(true);
+
+        const s32 emitterSetCount = mListModel.rowCount();
+        mRemoveAction->setEnabled(emitterSetCount > 1);
+        mCopyAction->setEnabled(true);
+        break;
+    }
+
+    case NodeType::Emitter: {
+        mAddEmitterAction->setEnabled(true);
+
+        const auto* setItem = item->parent();
+        if (!setItem) {
+            break;
+        }
+
+        const s32 emitterCount = setItem->rowCount();
+        mRemoveAction->setEnabled(emitterCount > 1);
+        mCopyAction->setEnabled(true);
+        break;
+    }
+    case NodeType::ChildData:
+    case NodeType::Fluctuation:
+    case NodeType::Field:
+        mAddEmitterAction->setEnabled(false);
+        break;
+    }
+}
+
+void PtclList::addEmitterSet(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item) {
+        return;
+    }
+
+    const s32 setIndex = mDocument->emitterSetCount();
+    mDocument->addEmitterSet("Add New EmitterSet");
+
+    mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
+    expandSourceIndex(mListModel.index(setIndex, 0));
+}
+
+void PtclList::addEmitter(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item) {
+        return;
+    }
+
+    auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+    QStandardItem* setItem = item;
+    if (type == NodeType::Emitter) {
+        setItem = item->parent();
+    }
+
+    s32 setIndex = setItem->data(sRoleSetIdx).toInt();
+    const auto& emitterSet = mDocument->emitterSet(setIndex);
+    const s32 emitterIndex = emitterSet->emitterCount();
+
+    mDocument->addEmitter("Add New Emitter", setIndex);
+    mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::Emitter);
+    expandSourceIndex(mListModel.indexFromItem(setItem));
+}
+
+void PtclList::removeItem(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item) {
+        return;
+    }
+
+    auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+    if (type == NodeType::Emitter) {
+        removeEmitter(item->parent(), item);
+    } else if (type == NodeType::EmitterSet) {
+        removeEmitterSet(item);
+    }
+}
+
+void PtclList::removeEmitter(QStandardItem* setItem, QStandardItem* emitterItem) {
+    if (!setItem) {
+        return;
+    }
+
+    const s32 setIndex = setItem->data(sRoleSetIdx).toInt();
+    const s32 emitterIndex = emitterItem->data(sRoleEmitterIdx).toInt();
+
+    const auto& emitter = mDocument->emitter(setIndex, emitterIndex);
+
+    const auto confirmationMessage = QString("Are you sure you want to remove the Emitter '%1'?").arg(emitter->name());
+    if (QMessageBox::question(this, "Remove Emitter", confirmationMessage) != QMessageBox::Yes) {
+        return;
+    }
+
+    const s32 nextPreferred = emitterIndex;
+    mDocument->removeEmitter(setIndex, emitterIndex);
+    selectNearestValidEmitter(setIndex, nextPreferred);
+}
+
+void PtclList::removeEmitterSet(QStandardItem* setItem) {
+    if (!setItem) {
+        return;
+    }
+
+    const s32 setIndex = setItem->data(sRoleSetIdx).toInt();
+    const auto& emitterSet = mDocument->emitterSet(setIndex);
+
+    const auto confirmationMessage = QString("Are you sure you want to remove the EmitterSet '%1'?").arg(emitterSet->name());
+    if (QMessageBox::question(this, "Remove EmitterSet", confirmationMessage) != QMessageBox::Yes) {
+        return;
+    }
+
+    const s32 nextPreferred = setIndex;
+    mDocument->removeEmitterSet(setIndex);
+    selectNearestValidEmitterSet(nextPreferred);
+}
+
+void PtclList::reindexEmitters(QStandardItem* setItem, s32 setIndex) {
+    if (!setItem) {
+        return;
+    }
+
+    for (s32 i = 0; i < setItem->rowCount(); ++i) {
+        QStandardItem* emitterItem = setItem->child(i);
+        if (!emitterItem) {
+            continue;
+        }
+
+        emitterItem->setData(i, sRoleEmitterIdx);
+        const auto* emitter = mDocument->emitter(setIndex, i);
+        if (!emitter) {
+            continue;
+        }
+        emitterItem->setText(QString("%1: %2").arg(i).arg(emitter->name()));
+
+        for (s32 c = 0; c < emitterItem->rowCount(); ++c) {
+            QStandardItem* child = emitterItem->child(c);
+            if (child) {
+                child->setData(i, sRoleEmitterIdx);
+            }
+        }
+    }
+}
+
+void PtclList::reindexEmitterSets() {
+    for (s32 i = 0; i < mListModel.rowCount(); ++i) {
+        QStandardItem* setItem = mListModel.item(i);
+        if (!setItem) {
+            continue;
+        }
+
+        setItem->setData(i, sRoleSetIdx);
+        const auto* set = mDocument->emitterSet(i);
+        if (!set) {
+            continue;
+        }
+        setItem->setText(QString("%1: %2").arg(i).arg(set->name()));
+        reindexEmitters(setItem, i);
+    }
+}
+
+void PtclList::expandSourceIndex(const QModelIndex& sourceIndex) {
+    const QModelIndex proxyIndex = mProxyModel.mapFromSource(sourceIndex);
+    if (proxyIndex.isValid()) {
+        mTreeView.expand(proxyIndex);
+    }
+}
+
+void PtclList::copyItem(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyModel = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyModel);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item) {
+        return;
+    }
+
+    const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+    mClipboardSet.reset();
+    mClipboardEmitter.reset();
+
+    if (type == NodeType::EmitterSet) {
+        const s32 setIndex = item->data(sRoleSetIdx).toInt();
+        mClipboardSet = mDocument->emitterSet(setIndex)->clone();
+    } else if (type == NodeType::Emitter) {
+        const s32 setIndex = item->parent()->data(sRoleSetIdx).toInt();
+        const s32 emitterIndex = item->data(sRoleEmitterIdx).toInt();
+        mClipboardEmitter = mDocument->emitter(setIndex, emitterIndex)->clone();
+    }
+
+    updateToolbarForSelection(item);
+}
+
+void PtclList::pasteItem(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyModel = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyModel);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item || !mDocument || !mSelection) {
+        return;
+    }
+
+    if (mClipboardSet) {
+        mDocument->addEmitterSet("Paste EmitterSet", mClipboardSet->clone());
+
+        const s32 setIndex = mDocument->emitterSetCount() - 1;
+        mSelection->set(setIndex, 0, Ptcl::Selection::Type::EmitterSet);
+    } else if (mClipboardEmitter) {
+        auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+        s32 setIndex;
+        if (type == NodeType::Emitter) {
+            setIndex = item->parent()->data(sRoleSetIdx).toInt();
+        } else {
+            setIndex = item->data(sRoleSetIdx).toInt();
+        }
+
+        auto set = mDocument->emitterSet(setIndex);
+        mDocument->addEmitter("Paste Emitter", setIndex, mClipboardEmitter->clone());
+
+        const s32 emitterIndex = set->emitterCount() - 1;
+        mSelection->set(setIndex, emitterIndex, Ptcl::Selection::Type::Emitter);
+    }
+}
+
+void PtclList::duplicateItem(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item) {
+        return;
+    }
+
+    auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+
+    if (type == NodeType::EmitterSet) {
+        duplicateEmitterSet(item);
+    } else if (type == NodeType::Emitter) {
+        duplicateEmitter(item);
+    }
+}
+
+void PtclList::duplicateEmitterSet(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item || !mDocument || !mSelection) {
+        return;
+    }
+
+    const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+    if (type != NodeType::EmitterSet) {
+        return;
+    }
+
+    const s32 setIndex = item->data(sRoleSetIdx).toInt();
+    mDocument->addEmitterSet("Duplicate EmitterSet", mDocument->emitterSet(setIndex)->clone());
+
+    const s32 newSetIndex = mDocument->emitterSetCount() - 1;
+    mSelection->set(newSetIndex, 0, Ptcl::Selection::Type::EmitterSet);
+}
+
+void PtclList::duplicateEmitter(QStandardItem* contextItem) {
+    QStandardItem* item = contextItem;
+    if (!item) {
+        QModelIndex proxyIndex = mTreeView.currentIndex();
+        QModelIndex sourceIndex = mProxyModel.mapToSource(proxyIndex);
+        item = mListModel.itemFromIndex(sourceIndex);
+    }
+
+    if (!item || !mDocument || !mSelection) {
+        return;
+    }
+
+    const auto type = static_cast<NodeType>(item->data(sRoleNodeType).toUInt());
+    if (type != NodeType::Emitter) {
+        return;
+    }
+
+    const s32 setIndex = item->parent()->data(sRoleSetIdx).toInt();
+    const s32 emitterIndex = item->data(sRoleEmitterIdx).toInt();
+    auto set = mDocument->emitterSet(setIndex);
+
+    mDocument->addEmitter("Duplicate Emitter", setIndex, mDocument->emitter(setIndex, emitterIndex)->clone());
+
+    const s32 newEmitterIndex = set->emitterCount() - 1;
+    mSelection->set(setIndex, newEmitterIndex, Ptcl::Selection::Type::Emitter);
+}
+
+
+// ========================================================================== //
+
+
+} // namespace PtclEditor
