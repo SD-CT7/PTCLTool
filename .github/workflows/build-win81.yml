@@ -1,0 +1,45 @@
+name: Build Windows 8.1 (Qt 5.15)
+
+# Manual trigger: GitHub -> Actions -> "Build Windows 8.1 (Qt 5.15)" -> Run workflow
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows81:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt 5.15.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 5.15.2
+          arch: win64_msvc2019_64
+          cache: true
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Deploy (windeployqt)
+        shell: pwsh
+        run: |
+          mkdir dist
+          copy build\Release\PTCLTool.exe dist\
+          copy build\Release\iconv.dll dist\
+          windeployqt dist\PTCLTool.exe --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PTCLTool-windows81
+          path: dist
